@@ -1,4 +1,10 @@
 import type { ParsedDocumentInput } from "@/lib/file-parser";
+import {
+  answerCampusQuestionLocal,
+  extractNoticeFromDocumentLocal,
+  type LocalExtractedIngestPayload,
+  verifyCampusRumorLocal,
+} from "@/lib/local-engine";
 import type {
   AskCitation,
   AskResponse,
@@ -7,7 +13,6 @@ import type {
   ExtractedDeadlineSuggestion,
   Notice,
   PageReference,
-  PolicyRules,
   RumorVerdict,
   StudentProfile,
   SuggestedEmail,
@@ -16,20 +21,19 @@ import type {
 } from "@/types/campus";
 
 export type EngineName = string;
+export type EngineStatus = "ai" | "built-in";
+export type ExtractedIngestPayload = LocalExtractedIngestPayload;
 
-export class MissingApiKeyError extends Error {
-  readonly code = "MISSING_API_KEY";
-  constructor(message?: string) {
-    super(
-      message ??
-        "GROQ_API_KEY is missing on the server. Add GROQ_API_KEY in Vercel Environment Variables (or .env.local locally), or click 'Connect Key' in the top bar."
-    );
-    this.name = "MissingApiKeyError";
-  }
-}
+type ProviderProtocol = "openai_compatible" | "gemini" | "anthropic";
 
-export function getEngineStatus(): "groq" | "unconfigured" {
-  return process.env.GROQ_API_KEY?.trim() ? "groq" : "unconfigured";
+interface ProviderSpec {
+  id: string;
+  protocol: ProviderProtocol;
+  apiKey: string;
+  baseUrl: string;
+  models: string[];
+  supportsVision: boolean;
+  supportsJsonResponseFormat: boolean;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -71,24 +75,16 @@ function isRetryableError(err: unknown): boolean {
   );
 }
 
-interface GroqMessageContentPart {
-  type: "text" | "image_url";
-  text?: string;
-  image_url?: { url: string };
-}
-
-const GROQ_TEXT_CANDIDATES = [
-  "openai/gpt-oss-120b",
-  "qwen/qwen3.8-27b",
-  "openai/gpt-oss-20b",
-  "llama-3.3-70b-versatile",
-];
-
-let cachedGroqModels: { ids: string[]; fetchedAt: number } | null = null;
+let cachedGroqModels: { apiKey: string; ids: string[]; fetchedAt: number } | null =
+  null;
 
 async function getGroqAvailableModelIds(apiKey: string): Promise<string[]> {
   const now = Date.now();
-  if (cachedGroqModels && now - cachedGroqModels.fetchedAt < 60_000) {
+  if (
+    cachedGroqModels &&
+    cachedGroqModels.apiKey === apiKey &&
+    now - cachedGroqModels.fetchedAt < 60_000
+  ) {
     return cachedGroqModels.ids;
   }
   try {
@@ -100,71 +96,308 @@ async function getGroqAvailableModelIds(apiKey: string): Promise<string[]> {
     const ids = (data.data ?? [])
       .map((m) => m.id)
       .filter((id): id is string => Boolean(id));
-    cachedGroqModels = { ids, fetchedAt: now };
+    cachedGroqModels = { apiKey, ids, fetchedAt: now };
     return ids;
   } catch {
     return [];
   }
 }
 
-async function resolveGroqModel(
+function inferProviderFromKey(
   apiKey: string,
-  hasImages: boolean,
-  attemptIndex: number
-): Promise<string> {
-  const envModel = process.env.GROQ_MODEL?.trim();
-  const available = await getGroqAvailableModelIds(apiKey);
+  customBaseUrl?: string,
+  customModel?: string
+): ProviderSpec {
+  const cleanBase = customBaseUrl?.trim().replace(/\/+$/, "");
+  const modelList = (defaults: string[]) =>
+    customModel?.trim()
+      ? [customModel.trim(), ...defaults.filter((m) => m !== customModel.trim())]
+      : defaults;
 
-  if (hasImages) {
-    const visionModel = available.find(
-      (id) =>
-        id.includes("vision") ||
-        id.includes("llama-4-scout") ||
-        id.includes("llama-4-maverick")
-    );
-    if (visionModel) return visionModel;
-    throw new Error(
-      "Image/scan OCR requires a Groq vision model (e.g. llama-4-scout), which is not enabled on this GROQ_API_KEY. Please upload PDF, DOCX, or TXT, or paste the circular text."
-    );
+  if (cleanBase) {
+    return {
+      id: "custom-openai-compatible",
+      protocol: "openai_compatible",
+      apiKey,
+      baseUrl: cleanBase,
+      models: modelList(["gpt-4o-mini", "llama-3.3-70b-versatile"]),
+      supportsVision: true,
+      supportsJsonResponseFormat: true,
+    };
   }
 
-  const orderedPool = Array.from(
-    new Set([
-      ...(envModel ? [envModel] : []),
-      ...GROQ_TEXT_CANDIDATES,
-      ...available.filter(
-        (id) =>
-          !id.includes("whisper") &&
-          !id.includes("orpheus") &&
-          !id.includes("guard")
-      ),
-    ])
-  );
-
-  const filteredPool =
-    available.length > 0
-      ? orderedPool.filter((id) => available.includes(id))
-      : orderedPool;
-
-  if (filteredPool.length > 0) {
-    return filteredPool[attemptIndex % filteredPool.length];
+  if (apiKey.startsWith("AIza")) {
+    return {
+      id: "gemini",
+      protocol: "gemini",
+      apiKey,
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      models: modelList(["gemini-2.5-flash", "gemini-2.0-flash"]),
+      supportsVision: true,
+      supportsJsonResponseFormat: true,
+    };
   }
 
-  return "openai/gpt-oss-120b";
+  if (apiKey.startsWith("sk-ant-")) {
+    return {
+      id: "anthropic",
+      protocol: "anthropic",
+      apiKey,
+      baseUrl: "https://api.anthropic.com/v1",
+      models: modelList(["claude-3-5-haiku-latest", "claude-3-7-sonnet-latest"]),
+      supportsVision: true,
+      supportsJsonResponseFormat: false,
+    };
+  }
+
+  if (apiKey.startsWith("sk-or-")) {
+    return {
+      id: "openrouter",
+      protocol: "openai_compatible",
+      apiKey,
+      baseUrl: "https://openrouter.ai/api/v1",
+      models: modelList([
+        "google/gemini-2.0-flash-001",
+        "openai/gpt-4o-mini",
+        "meta-llama/llama-3.3-70b-instruct",
+      ]),
+      supportsVision: true,
+      supportsJsonResponseFormat: true,
+    };
+  }
+
+  if (apiKey.startsWith("gsk_")) {
+    return {
+      id: "groq",
+      protocol: "openai_compatible",
+      apiKey,
+      baseUrl: "https://api.groq.com/openai/v1",
+      models: modelList([
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile",
+      ]),
+      supportsVision: false, // Dynamically verified via /models below
+      supportsJsonResponseFormat: true,
+    };
+  }
+
+  if (apiKey.startsWith("csk-")) {
+    return {
+      id: "cerebras",
+      protocol: "openai_compatible",
+      apiKey,
+      baseUrl: "https://api.cerebras.ai/v1",
+      models: modelList(["llama-3.3-70b", "llama3.1-8b"]),
+      supportsVision: false,
+      supportsJsonResponseFormat: true,
+    };
+  }
+
+  if (apiKey.startsWith("xai-")) {
+    return {
+      id: "xai",
+      protocol: "openai_compatible",
+      apiKey,
+      baseUrl: "https://api.x.ai/v1",
+      models: modelList(["grok-2-latest"]),
+      supportsVision: true,
+      supportsJsonResponseFormat: true,
+    };
+  }
+
+  return {
+    id: "openai",
+    protocol: "openai_compatible",
+    apiKey,
+    baseUrl: "https://api.openai.com/v1",
+    models: modelList(["gpt-4o-mini", "gpt-4.1-mini"]),
+    supportsVision: true,
+    supportsJsonResponseFormat: true,
+  };
 }
 
-async function callGroqJson<T>(
-  apiKey: string,
-  promptText: string,
-  attachedDocs: ParsedDocumentInput[],
-  attemptIndex: number
-): Promise<{ data: T; model: string }> {
-  const imageDocs = attachedDocs.filter(
-    (d) => d.kind === "image" && d.base64Data
-  );
-  const hasImages = imageDocs.length > 0;
-  const model = await resolveGroqModel(apiKey, hasImages, attemptIndex);
+function resolveConfiguredProviders(): ProviderSpec[] {
+  const candidates: Array<{
+    key?: string;
+    forcedId?: ProviderSpec["id"];
+    protocol?: ProviderProtocol;
+    baseUrl?: string;
+    models: string[];
+    supportsVision: boolean;
+  }> = [
+    {
+      key: process.env.AI_API_KEY?.trim(),
+      baseUrl: process.env.AI_BASE_URL?.trim(),
+      models: process.env.AI_MODEL?.trim() ? [process.env.AI_MODEL.trim()] : [],
+      supportsVision: true,
+    },
+    {
+      key:
+        process.env.GEMINI_API_KEY?.trim() ||
+        process.env.GOOGLE_API_KEY?.trim(),
+      forcedId: "gemini",
+      protocol: "gemini",
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      models: [
+        process.env.GEMINI_MODEL?.trim(),
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: true,
+    },
+    {
+      key: process.env.OPENAI_API_KEY?.trim(),
+      forcedId: "openai",
+      protocol: "openai_compatible",
+      baseUrl: process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1",
+      models: [
+        process.env.OPENAI_MODEL?.trim(),
+        "gpt-4o-mini",
+        "gpt-4.1-mini",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: true,
+    },
+    {
+      key: process.env.OPENROUTER_API_KEY?.trim(),
+      forcedId: "openrouter",
+      protocol: "openai_compatible",
+      baseUrl: "https://openrouter.ai/api/v1",
+      models: [
+        process.env.OPENROUTER_MODEL?.trim(),
+        "google/gemini-2.0-flash-001",
+        "openai/gpt-4o-mini",
+        "meta-llama/llama-3.3-70b-instruct",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: true,
+    },
+    {
+      key: process.env.GROQ_API_KEY?.trim(),
+      forcedId: "groq",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.groq.com/openai/v1",
+      models: [
+        process.env.GROQ_MODEL?.trim(),
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: false,
+    },
+    {
+      key: process.env.ANTHROPIC_API_KEY?.trim(),
+      forcedId: "anthropic",
+      protocol: "anthropic",
+      baseUrl: "https://api.anthropic.com/v1",
+      models: [
+        process.env.ANTHROPIC_MODEL?.trim(),
+        "claude-3-5-haiku-latest",
+        "claude-3-7-sonnet-latest",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: true,
+    },
+    {
+      key: process.env.DEEPSEEK_API_KEY?.trim(),
+      forcedId: "deepseek",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.deepseek.com",
+      models: [process.env.DEEPSEEK_MODEL?.trim(), "deepseek-chat"].filter(
+        (m): m is string => Boolean(m)
+      ),
+      supportsVision: false,
+    },
+    {
+      key: process.env.MISTRAL_API_KEY?.trim(),
+      forcedId: "mistral",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.mistral.ai/v1",
+      models: [
+        process.env.MISTRAL_MODEL?.trim(),
+        "mistral-small-latest",
+        "pixtral-12b-2409",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: true,
+    },
+    {
+      key: process.env.CEREBRAS_API_KEY?.trim(),
+      forcedId: "cerebras",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.cerebras.ai/v1",
+      models: [process.env.CEREBRAS_MODEL?.trim(), "llama-3.3-70b"].filter(
+        (m): m is string => Boolean(m)
+      ),
+      supportsVision: false,
+    },
+    {
+      key: process.env.TOGETHER_API_KEY?.trim(),
+      forcedId: "together",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.together.xyz/v1",
+      models: [
+        process.env.TOGETHER_MODEL?.trim(),
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      ].filter((m): m is string => Boolean(m)),
+      supportsVision: false,
+    },
+    {
+      key: process.env.XAI_API_KEY?.trim(),
+      forcedId: "xai",
+      protocol: "openai_compatible",
+      baseUrl: "https://api.x.ai/v1",
+      models: [process.env.XAI_MODEL?.trim(), "grok-2-latest"].filter(
+        (m): m is string => Boolean(m)
+      ),
+      supportsVision: true,
+    },
+  ];
 
+  const resolved: ProviderSpec[] = [];
+  const seen = new Set<string>();
+
+  for (const item of candidates) {
+    if (!item.key) continue;
+    const inferred = inferProviderFromKey(
+      item.key,
+      item.forcedId ? item.baseUrl : item.baseUrl,
+      item.models[0]
+    );
+    // Honor key-prefix mismatch (e.g. an OpenAI/Gemini key pasted into GROQ_API_KEY or AI_API_KEY)
+    const spec: ProviderSpec =
+      item.forcedId && inferred.id === item.forcedId
+        ? {
+            id: item.forcedId,
+            protocol: item.protocol!,
+            apiKey: item.key,
+            baseUrl: (item.baseUrl ?? inferred.baseUrl).replace(/\/+$/, ""),
+            models: item.models.length > 0 ? item.models : inferred.models,
+            supportsVision: item.supportsVision,
+            supportsJsonResponseFormat: item.protocol !== "anthropic",
+          }
+        : inferred;
+
+    const dedupeKey = `${spec.id}:${spec.baseUrl}:${spec.apiKey}`;
+    if (!seen.has(dedupeKey)) {
+      seen.add(dedupeKey);
+      resolved.push(spec);
+    }
+  }
+
+  return resolved;
+}
+
+export function getEngineStatus(): EngineStatus {
+  return resolveConfiguredProviders().length > 0 ? "ai" : "built-in";
+}
+
+const SYSTEM_INSTRUCTION =
+  "You are UniBrief AI. Return strictly valid JSON matching the exact requested schema with zero hallucination. Output raw JSON only.";
+
+function buildCombinedPrompt(
+  promptText: string,
+  attachedDocs: ParsedDocumentInput[]
+): string {
   const extraTextSections = attachedDocs
     .filter((d) => d.kind !== "image")
     .map((doc) => {
@@ -174,57 +407,97 @@ async function callGroqJson<T>(
       return `--- ATTACHED FILE: ${doc.fileName} (${doc.mimeType}) ---\n[No extractable text layer; PDF appears scanned. If unreadable without vision, note limitation clearly.]`;
     });
 
-  const combinedPrompt = [promptText, ...extraTextSections].join("\n\n");
+  return [promptText, ...extraTextSections].join("\n\n");
+}
 
-  const content: string | GroqMessageContentPart[] = hasImages
-    ? [
-        { type: "text", text: combinedPrompt },
-        ...imageDocs.map(
-          (img): GroqMessageContentPart => ({
-            type: "image_url",
+async function callOpenAiCompatible<T>(
+  spec: ProviderSpec,
+  combinedPrompt: string,
+  imageDocs: ParsedDocumentInput[],
+  attemptIndex: number
+): Promise<{ data: T; model: string }> {
+  let candidates = spec.models;
+
+  if (spec.id === "groq") {
+    const available = await getGroqAvailableModelIds(spec.apiKey);
+    if (imageDocs.length > 0) {
+      const visionModels = available.filter(
+        (id) =>
+          id.includes("vision") ||
+          id.includes("llama-4") ||
+          id.includes("maverick") ||
+          id.includes("scout")
+      );
+      if (visionModels.length === 0) {
+        throw new Error("NO_VISION_MODEL");
+      }
+      candidates = visionModels;
+    } else if (available.length > 0) {
+      const filtered = spec.models.filter((m) => available.includes(m));
+      if (filtered.length > 0) {
+        candidates = filtered;
+      } else {
+        const fallbackText = available.find(
+          (id) =>
+            !id.includes("whisper") &&
+            !id.includes("tts") &&
+            !id.includes("guard")
+        );
+        if (fallbackText) candidates = [fallbackText];
+      }
+    }
+  } else if (imageDocs.length > 0 && !spec.supportsVision) {
+    throw new Error("NO_VISION_MODEL");
+  }
+
+  const model = candidates[attemptIndex % candidates.length] ?? candidates[0];
+  const content =
+    imageDocs.length > 0
+      ? [
+          { type: "text" as const, text: combinedPrompt },
+          ...imageDocs.map((img) => ({
+            type: "image_url" as const,
             image_url: {
               url: `data:${img.mimeType};base64,${img.base64Data}`,
             },
-          })
-        ),
-      ]
-    : combinedPrompt;
+          })),
+        ]
+      : combinedPrompt;
 
-  const useJsonFormat = attemptIndex === 0;
-  const requestBody: Record<string, unknown> = {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${spec.apiKey}`,
+    "Content-Type": "application/json",
+  };
+  if (spec.id === "openrouter") {
+    headers["HTTP-Referer"] = "https://unibrief.vercel.app";
+    headers["X-Title"] = "UniBrief";
+  }
+
+  const body: Record<string, unknown> = {
     model,
     temperature: 0.1,
     messages: [
-      {
-        role: "system",
-        content:
-          "You are UniBrief AI. Return strictly valid JSON matching the exact requested schema with zero hallucination. Output raw JSON only.",
-      },
-      {
-        role: "user",
-        content,
-      },
+      { role: "system", content: SYSTEM_INSTRUCTION },
+      { role: "user", content },
     ],
   };
-  if (useJsonFormat) {
-    requestBody.response_format = { type: "json_object" };
+  if (spec.supportsJsonResponseFormat && attemptIndex === 0) {
+    body.response_format = { type: "json_object" };
   }
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+  const res = await fetch(`${spec.baseUrl}/chat/completions`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
+    headers,
+    signal: AbortSignal.timeout(25000),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     const retryAfterSec = Number(res.headers.get("retry-after") ?? "0");
-    const err = new Error(`Groq API ${res.status}: ${errText.slice(0, 300)}`) as Error & {
-      retryAfterMs?: number;
-    };
+    const err = new Error(
+      `${spec.id} API ${res.status}: ${errText.slice(0, 300)}`
+    ) as Error & { retryAfterMs?: number };
     if (res.status === 429 && Number.isFinite(retryAfterSec) && retryAfterSec > 0) {
       err.retryAfterMs = Math.min(6000, Math.ceil(retryAfterSec * 1000));
     }
@@ -236,85 +509,217 @@ async function callGroqJson<T>(
   };
   const raw = payload.choices?.[0]?.message?.content;
   if (!raw || !raw.trim()) {
-    throw new Error("Empty response returned from Groq.");
+    throw new Error(`Empty response returned from ${spec.id}.`);
   }
   return { data: cleanAndParseJson<T>(raw), model };
 }
 
-async function generateStructuredJsonWithRetry<T>(
-  promptText: string,
-  attachedDocs: ParsedDocumentInput[] = [],
-  apiKeyOverride?: string
-): Promise<{ data: T; engineUsed: EngineName }> {
-  const groqKey = process.env.GROQ_API_KEY?.trim() || apiKeyOverride?.trim();
-
-  if (!groqKey) {
-    throw new MissingApiKeyError();
-  }
-
-  const maxAttempts = 3;
-  const backoffsMs = [600, 1400, 2800];
-  let lastError: unknown = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const { data, model } = await callGroqJson<T>(
-        groqKey,
-        promptText,
-        attachedDocs,
-        attempt - 1
-      );
-      return { data, engineUsed: model };
-    } catch (err) {
-      lastError = err;
-      if (attempt < maxAttempts && isRetryableError(err)) {
-        const hintedMs =
-          err && typeof err === "object" && "retryAfterMs" in err
-            ? Number((err as { retryAfterMs?: unknown }).retryAfterMs)
-            : 0;
-        const waitMs = Math.max(
-          backoffsMs[attempt - 1] ?? 1500,
-          Number.isFinite(hintedMs) ? hintedMs : 0
-        );
-        await sleep(waitMs);
-        continue;
-      }
-      break;
+async function callGemini<T>(
+  spec: ProviderSpec,
+  combinedPrompt: string,
+  imageDocs: ParsedDocumentInput[],
+  attemptIndex: number
+): Promise<{ data: T; model: string }> {
+  const model = spec.models[attemptIndex % spec.models.length] ?? spec.models[0];
+  const parts: Array<Record<string, unknown>> = [{ text: combinedPrompt }];
+  for (const img of imageDocs) {
+    if (img.base64Data) {
+      parts.push({
+        inlineData: {
+          mimeType: img.mimeType,
+          data: img.base64Data,
+        },
+      });
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Groq AI generation failed after retry attempts.");
+  const res = await fetch(
+    `${spec.baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(spec.apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+        contents: [{ role: "user", parts }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`gemini API ${res.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const payload = (await res.json()) as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
+  };
+  const raw =
+    payload.candidates?.[0]?.content?.parts
+      ?.map((p) => p.text ?? "")
+      .join("") ?? "";
+  if (!raw.trim()) {
+    throw new Error("Empty response returned from gemini.");
+  }
+  return { data: cleanAndParseJson<T>(raw), model };
 }
 
-export interface ExtractedIngestPayload {
-  circular_no: string;
-  title: string;
-  summary: string;
-  extracted_text: string;
-  page_references: PageReference[];
-  topic_tag: string;
-  effective_date: string;
-  supersedes_previous: boolean;
-  target_branches: string[];
-  target_semesters: number[];
-  audience_type: AudienceType;
-  policy_rules: PolicyRules | null;
-  deadlines: Array<{
-    title: string;
-    due_date: string;
-    due_time: string;
-    penalty_impact: string;
-    urgency: UrgencyLevel;
-    action_url: string | null;
-  }>;
+async function callAnthropic<T>(
+  spec: ProviderSpec,
+  combinedPrompt: string,
+  imageDocs: ParsedDocumentInput[],
+  attemptIndex: number
+): Promise<{ data: T; model: string }> {
+  const model = spec.models[attemptIndex % spec.models.length] ?? spec.models[0];
+  const content: Array<Record<string, unknown>> = [
+    { type: "text", text: combinedPrompt },
+  ];
+  for (const img of imageDocs) {
+    if (img.base64Data) {
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: img.mimeType,
+          data: img.base64Data,
+        },
+      });
+    }
+  }
+
+  const res = await fetch(`${spec.baseUrl}/messages`, {
+    method: "POST",
+    headers: {
+      "x-api-key": spec.apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    signal: AbortSignal.timeout(25000),
+    body: JSON.stringify({
+      model,
+      max_tokens: 2048,
+      temperature: 0.1,
+      system: SYSTEM_INSTRUCTION,
+      messages: [{ role: "user", content }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`anthropic API ${res.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const payload = (await res.json()) as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
+  const raw =
+    payload.content
+      ?.filter((c) => c.type === "text")
+      .map((c) => c.text ?? "")
+      .join("") ?? "";
+  if (!raw.trim()) {
+    throw new Error("Empty response returned from anthropic.");
+  }
+  return { data: cleanAndParseJson<T>(raw), model };
+}
+
+async function invokeProvider<T>(
+  spec: ProviderSpec,
+  promptText: string,
+  attachedDocs: ParsedDocumentInput[],
+  attemptIndex: number
+): Promise<{ data: T; model: string }> {
+  const imageDocs = attachedDocs.filter(
+    (d) => d.kind === "image" && d.base64Data
+  );
+  const combinedPrompt = buildCombinedPrompt(promptText, attachedDocs);
+
+  if (spec.protocol === "gemini") {
+    return callGemini<T>(spec, combinedPrompt, imageDocs, attemptIndex);
+  }
+  if (spec.protocol === "anthropic") {
+    return callAnthropic<T>(spec, combinedPrompt, imageDocs, attemptIndex);
+  }
+  return callOpenAiCompatible<T>(spec, combinedPrompt, imageDocs, attemptIndex);
+}
+
+async function generateStructuredJsonWithProviders<T>(
+  promptText: string,
+  attachedDocs: ParsedDocumentInput[] = []
+): Promise<{ data: T; engineUsed: EngineName } | null> {
+  const providers = resolveConfiguredProviders();
+  if (providers.length === 0) {
+    return null;
+  }
+
+  const maxAttemptsPerProvider = 2;
+  const backoffsMs = [600, 1400];
+  let lastError: unknown = null;
+
+  for (const provider of providers) {
+    for (let attempt = 1; attempt <= maxAttemptsPerProvider; attempt++) {
+      try {
+        const { data, model } = await invokeProvider<T>(
+          provider,
+          promptText,
+          attachedDocs,
+          attempt - 1
+        );
+        return { data, engineUsed: model };
+      } catch (err) {
+        if (err instanceof Error && err.message === "NO_VISION_MODEL") {
+          lastError = err;
+          break; // Try next provider that supports vision
+        }
+        lastError = err;
+        if (attempt < maxAttemptsPerProvider && isRetryableError(err)) {
+          const hintedMs =
+            err && typeof err === "object" && "retryAfterMs" in err
+              ? Number((err as { retryAfterMs?: unknown }).retryAfterMs)
+              : 0;
+          await sleep(
+            Math.max(
+              backoffsMs[attempt - 1] ?? 1200,
+              Number.isFinite(hintedMs) ? hintedMs : 0
+            )
+          );
+          continue;
+        }
+        break;
+      }
+    }
+  }
+
+  // Image-only scans cannot be read deterministically without a vision-capable model
+  const hasImageOnly = attachedDocs.some(
+    (d) => d.kind === "image" && !d.textContent
+  );
+  if (
+    hasImageOnly ||
+    process.env.AI_ALLOW_LOCAL_FALLBACK === "false"
+  ) {
+    if (lastError instanceof Error && lastError.message === "NO_VISION_MODEL") {
+      throw new Error(
+        "Image/scan OCR requires a vision-capable AI key (such as GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY) on the server, or upload PDF/DOCX/TXT instead."
+      );
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Configured AI providers failed.");
+  }
+
+  return null;
 }
 
 export async function extractNoticeFromDocument(
   doc: ParsedDocumentInput,
-  existingTopics: string[],
-  apiKeyOverride?: string
+  existingTopics: string[]
 ): Promise<{ payload: ExtractedIngestPayload; engineUsed: EngineName }> {
   const todayIso = new Date().toISOString().slice(0, 10);
   const prompt = `You are a university Registrar and Examination Cell document extraction engine.
@@ -356,16 +761,27 @@ Rules:
 - Never fabricate deadlines or policy numbers not present in the document.
 - If the notice contains Hindi/Hinglish phrases, translate/summarize clearly into English while preserving exact circular numbers, dates, and ₹ fine amounts.`;
 
-  const { data, engineUsed } =
-    await generateStructuredJsonWithRetry<Partial<ExtractedIngestPayload>>(
+  const aiResult =
+    await generateStructuredJsonWithProviders<Partial<ExtractedIngestPayload>>(
       prompt,
-      [doc],
-      apiKeyOverride
+      [doc]
     );
 
-  const validBranches = Array.isArray(data.target_branches) && data.target_branches.length > 0
-    ? data.target_branches.map((b) => String(b).trim()).filter(Boolean)
-    : ["All"];
+  if (!aiResult) {
+    if (doc.kind === "image" && !doc.textContent) {
+      throw new Error(
+        "Image/scan OCR requires a vision-capable AI key (GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY) on the server, or upload PDF/DOCX/TXT instead."
+      );
+    }
+    return extractNoticeFromDocumentLocal(doc, existingTopics);
+  }
+
+  const { data, engineUsed } = aiResult;
+
+  const validBranches =
+    Array.isArray(data.target_branches) && data.target_branches.length > 0
+      ? data.target_branches.map((b) => String(b).trim()).filter(Boolean)
+      : ["All"];
 
   const validSemesters =
     Array.isArray(data.target_semesters) && data.target_semesters.length > 0
@@ -412,7 +828,8 @@ Rules:
         .map((d) => ({
           title: d.title.trim(),
           due_date:
-            typeof d.due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.due_date)
+            typeof d.due_date === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(d.due_date)
               ? d.due_date
               : effectiveDate,
           due_time:
@@ -554,9 +971,8 @@ export async function answerCampusQuestion(params: {
   profile: StudentProfile;
   notices: Notice[];
   attachment?: ParsedDocumentInput | null;
-  apiKeyOverride?: string;
 }): Promise<AskResponse> {
-  const { question, profile, notices, attachment, apiKeyOverride } = params;
+  const { question, profile, notices, attachment } = params;
   const prompt = `You are UniBrief, an authoritative, zero-hallucination university academic assistant.
 Student Profile Context:
 - Branch: ${profile.branch}
@@ -622,13 +1038,19 @@ Return STRICT JSON matching this exact schema:
 }`;
 
   const docs = attachment ? [attachment] : [];
-  const { data, engineUsed } =
-    await generateStructuredJsonWithRetry<Partial<AskResponse>>(
-      prompt,
-      docs,
-      apiKeyOverride
-    );
+  const aiResult =
+    await generateStructuredJsonWithProviders<Partial<AskResponse>>(prompt, docs);
 
+  if (!aiResult) {
+    if (attachment?.kind === "image" && !attachment.textContent) {
+      throw new Error(
+        "Image attachment reading requires a vision-capable AI key (GEMINI_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY) on the server, or attach PDF/DOCX/TXT instead."
+      );
+    }
+    return answerCampusQuestionLocal({ question, profile, notices, attachment });
+  }
+
+  const { data, engineUsed } = aiResult;
   const found = Boolean(data.found_in_official_records);
   const citations = found ? sanitizeCitations(data.citations, notices) : [];
 
@@ -651,7 +1073,8 @@ Return STRICT JSON matching this exact schema:
           ),
           active_rule: String(data.conflict_resolution.active_rule ?? ""),
           note: String(
-            data.conflict_resolution.note ?? "Newer active circular overrides previous rule."
+            data.conflict_resolution.note ??
+              "Newer active circular overrides previous rule."
           ),
         }
       : null;
@@ -659,13 +1082,19 @@ Return STRICT JSON matching this exact schema:
   const extractedDeadlines: ExtractedDeadlineSuggestion[] =
     found && Array.isArray(data.extracted_deadlines)
       ? data.extracted_deadlines
-          .filter((d) => d && typeof d.title === "string" && /^\d{4}-\d{2}-\d{2}$/.test(String(d.due_date ?? "")))
+          .filter(
+            (d) =>
+              d &&
+              typeof d.title === "string" &&
+              /^\d{4}-\d{2}-\d{2}$/.test(String(d.due_date ?? ""))
+          )
           .map((d) => ({
             title: d.title.trim(),
             due_date: d.due_date,
             due_time: d.due_time?.trim() || "09:30 AM",
             penalty_impact: d.penalty_impact?.trim() || "Refer official circular",
-            circular_no: d.circular_no?.trim() || citations[0]?.circular_no || "CAMPUS",
+            circular_no:
+              d.circular_no?.trim() || citations[0]?.circular_no || "CAMPUS",
           }))
       : [];
 
@@ -705,9 +1134,8 @@ Return STRICT JSON matching this exact schema:
 export async function verifyCampusRumor(params: {
   claim: string;
   notices: Notice[];
-  apiKeyOverride?: string;
 }): Promise<VerifyRumorResponse> {
-  const { claim, notices, apiKeyOverride } = params;
+  const { claim, notices } = params;
   const prompt = `You are the UniBrief Rumor Buster fact-checking engine.
 Evaluate the student's forwarded WhatsApp message/claim strictly against the Official Campus Circulars below.
 
@@ -739,12 +1167,17 @@ Return STRICT JSON matching this exact shape:
   ]
 }`;
 
-  const { data, engineUsed } =
-    await generateStructuredJsonWithRetry<Partial<VerifyRumorResponse>>(
+  const aiResult =
+    await generateStructuredJsonWithProviders<Partial<VerifyRumorResponse>>(
       prompt,
-      [],
-      apiKeyOverride
+      []
     );
+
+  if (!aiResult) {
+    return verifyCampusRumorLocal({ claim, notices });
+  }
+
+  const { data, engineUsed } = aiResult;
 
   const verdict: RumorVerdict =
     data.verdict === "VERIFIED" ||

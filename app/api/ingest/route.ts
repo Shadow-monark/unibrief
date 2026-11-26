@@ -1,10 +1,6 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  extractNoticeFromDocument,
-  MissingApiKeyError,
-  type EngineName,
-} from "@/lib/ai";
+import { extractNoticeFromDocument, type EngineName } from "@/lib/ai";
 import {
   createTextDocumentInput,
   parseUploadedFile,
@@ -139,19 +135,17 @@ export async function POST(req: NextRequest) {
       new Set(initialState.notices.map((n) => n.topic_tag))
     );
 
-    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const results: IngestFileResult[] = [];
-    let lastEngine: EngineName = "groq";
+    let lastEngine: EngineName = "unibrief-local";
 
     // Loop 2: Batch File Loop — process each uploaded document sequentially
     for (const doc of parsedDocs) {
       const fileLogs: PipelineLogEntry[] = [];
 
-      // Loop 1: Retry Loop (3 attempts + exponential backoff) inside extractNoticeFromDocument
+      // Retry loop across configured AI providers with local fallback inside extractNoticeFromDocument
       const { payload, engineUsed } = await extractNoticeFromDocument(
         doc,
-        existingTopics,
-        apiKeyOverride
+        existingTopics
       );
       lastEngine = engineUsed;
 
@@ -344,12 +338,6 @@ export async function POST(req: NextRequest) {
       engine_used: lastEngine,
     });
   } catch (err) {
-    if (err instanceof MissingApiKeyError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: 503 }
-      );
-    }
     const message =
       err instanceof Error ? err.message : "Failed to ingest circulars.";
     return NextResponse.json({ error: message }, { status: 500 });

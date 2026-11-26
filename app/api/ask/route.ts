@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { answerCampusQuestion, MissingApiKeyError } from "@/lib/ai";
+import { answerCampusQuestion } from "@/lib/ai";
 import { parseUploadedFile, type ParsedDocumentInput } from "@/lib/file-parser";
 import { matchesStudentProfile } from "@/lib/profile";
 import { getDbState } from "@/lib/store";
@@ -101,23 +101,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const result = await answerCampusQuestion({
       question,
       profile,
       notices: relevantNotices,
       attachment,
-      apiKeyOverride,
     });
 
     return NextResponse.json(result);
   } catch (err) {
-    if (err instanceof MissingApiKeyError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: 503 }
-      );
-    }
     const message =
       err instanceof Error ? err.message : "Failed to process UniBrief query.";
     return NextResponse.json({ error: message }, { status: 500 });

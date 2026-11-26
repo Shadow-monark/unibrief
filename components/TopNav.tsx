@@ -5,7 +5,6 @@ import {
   Calculator,
   CalendarClock,
   ChevronDown,
-  KeyRound,
   MessageSquareText,
   ShieldAlert,
   ShieldCheck,
@@ -26,9 +25,6 @@ interface TopNavProps {
   onTabChange: (tab: StudentTab) => void;
   verifiedNoticeCount: number;
   pendingDeadlineCount: number;
-  engineStatus: "groq" | "unconfigured";
-  hasSessionKey: boolean;
-  onOpenKeyModal: () => void;
 }
 
 const BRANCHES: BranchOption[] = ["All", "CSE", "AIML", "ECE", "ME"];
@@ -44,9 +40,6 @@ export function TopNav({
   onTabChange,
   verifiedNoticeCount,
   pendingDeadlineCount,
-  engineStatus,
-  hasSessionKey,
-  onOpenKeyModal,
 }: TopNavProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -136,22 +129,6 @@ export function TopNav({
 
         {/* Right Controls: Compact Profile Popover + Admin Switch */}
         <div className="order-2 flex items-center gap-2 md:order-3">
-          {engineStatus === "unconfigured" && (
-            <button
-              type="button"
-              onClick={onOpenKeyModal}
-              title="Connect Groq API Key for this session"
-              className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
-                hasSessionKey
-                  ? "bg-emerald-500/12 text-emerald-800 hover:bg-emerald-500/20"
-                  : "bg-amber-100/90 text-amber-900 hover:bg-amber-200"
-              }`}
-            >
-              <KeyRound className="h-3 w-3" aria-hidden="true" />
-              <span>{hasSessionKey ? "Key Ready" : "Connect Key"}</span>
-            </button>
-          )}
-
           {/* Profile Popover Trigger */}
           <div className="relative" ref={popoverRef}>
             <button
@@ -169,9 +146,8 @@ export function TopNav({
                 {profile.branch} · S{profile.semester}
               </span>
               <ChevronDown
-                className={`h-3.5 w-3.5 text-slate-400 transition-transform ${
-                  profileOpen ? "rotate-180" : ""
-                }`}
+                className={`h-3.5 w-3.5 text-slate-400 transition-transform ${profileOpen ? "rotate-180" : ""
+                  }`}
                 aria-hidden="true"
               />
             </button>
@@ -195,11 +171,10 @@ export function TopNav({
                           onClick={() =>
                             onProfileChange({ ...profile, branch: b })
                           }
-                          className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                            profile.branch === b
+                          className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition ${profile.branch === b
                               ? "bg-slate-900 text-white"
                               : "bg-white/70 text-slate-700 hover:bg-white"
-                          }`}
+                            }`}
                         >
                           {b}
                         </button>
@@ -219,11 +194,10 @@ export function TopNav({
                           onClick={() =>
                             onProfileChange({ ...profile, semester: sem })
                           }
-                          className={`cursor-pointer rounded-full py-1 text-xs font-medium tabular-nums transition ${
-                            profile.semester === sem
+                          className={`cursor-pointer rounded-full py-1 text-xs font-medium tabular-nums transition ${profile.semester === sem
                               ? "bg-slate-900 text-white"
                               : "bg-white/70 text-slate-700 hover:bg-white"
-                          }`}
+                            }`}
                         >
                           Sem {sem}
                         </button>
@@ -243,11 +217,10 @@ export function TopNav({
                           onClick={() =>
                             onProfileChange({ ...profile, residence: res })
                           }
-                          className={`cursor-pointer rounded-full py-1.5 text-xs font-medium transition ${
-                            profile.residence === res
+                          className={`cursor-pointer rounded-full py-1.5 text-xs font-medium transition ${profile.residence === res
                               ? "bg-slate-900 text-white"
                               : "bg-white/70 text-slate-700 hover:bg-white"
-                          }`}
+                            }`}
                         >
                           {res}
                         </button>
@@ -266,11 +239,10 @@ export function TopNav({
               onRoleChange(role === "student" ? "admin" : "student")
             }
             aria-pressed={role === "admin"}
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-              role === "admin"
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${role === "admin"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "border border-white/80 bg-white/70 text-slate-700 hover:bg-white"
-            }`}
+              }`}
           >
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{role === "admin" ? "Exit Admin" : "Admin"}</span>
@@ -299,19 +271,17 @@ function NavTabButton({
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
-        active
+      className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${active
           ? "bg-slate-900 text-white shadow-xs"
           : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
-      }`}
+        }`}
     >
       {icon}
       <span>{label}</span>
       {badge && (
         <span
-          className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
-            active ? "bg-white/20 text-white" : "bg-slate-900/10 text-slate-700"
-          }`}
+          className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${active ? "bg-white/20 text-white" : "bg-slate-900/10 text-slate-700"
+            }`}
         >
           {badge}
         </span>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MissingApiKeyError, verifyCampusRumor } from "@/lib/ai";
+import { verifyCampusRumor } from "@/lib/ai";
 import { getDbState } from "@/lib/store";
 import type { Notice } from "@/types/campus";
 
@@ -25,21 +25,13 @@ export async function POST(req: NextRequest) {
       allNotices.push(notice);
     }
 
-    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const verification = await verifyCampusRumor({
       claim,
       notices: allNotices,
-      apiKeyOverride,
     });
 
     return NextResponse.json(verification);
   } catch (err) {
-    if (err instanceof MissingApiKeyError) {
-      return NextResponse.json(
-        { error: err.message, code: err.code },
-        { status: 503 }
-      );
-    }
     const message =
       err instanceof Error ? err.message : "Failed to verify rumor.";
     return NextResponse.json({ error: message }, { status: 500 });
