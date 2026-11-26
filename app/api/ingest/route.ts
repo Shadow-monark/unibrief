@@ -139,6 +139,7 @@ export async function POST(req: NextRequest) {
       new Set(initialState.notices.map((n) => n.topic_tag))
     );
 
+    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const results: IngestFileResult[] = [];
     let lastEngine: EngineName = "groq";
 
@@ -149,7 +150,8 @@ export async function POST(req: NextRequest) {
       // Loop 1: Retry Loop (3 attempts + exponential backoff) inside extractNoticeFromDocument
       const { payload, engineUsed } = await extractNoticeFromDocument(
         doc,
-        existingTopics
+        existingTopics,
+        apiKeyOverride
       );
       lastEngine = engineUsed;
 

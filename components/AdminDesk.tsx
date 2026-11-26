@@ -13,6 +13,7 @@ import {
   Webhook,
   XCircle,
 } from "lucide-react";
+import { getClientGroqKey } from "@/lib/client-key";
 import type {
   IngestResponse,
   Notice,
@@ -23,6 +24,7 @@ interface AdminDeskProps {
   notices: Notice[];
   onIngestComplete: () => Promise<void>;
   onInspectCircular: (noticeId: string) => void;
+  onRequestApiKey: () => void;
   onToast: (message: string, tone?: "success" | "error" | "info") => void;
 }
 
@@ -63,6 +65,7 @@ export function AdminDesk({
   notices,
   onIngestComplete,
   onInspectCircular,
+  onRequestApiKey,
   onToast,
 }: AdminDeskProps) {
   const [ingestMode, setIngestMode] = useState<"files" | "paste">("files");
@@ -148,15 +151,21 @@ export function AdminDesk({
         fd.append("webhookUrl", webhookUrl.trim());
       }
 
+      const clientKey = getClientGroqKey();
       const res = await fetch("/api/ingest", {
         method: "POST",
+        headers: clientKey ? { "x-groq-api-key": clientKey } : undefined,
         body: fd,
       });
 
-      const data = (await res.json()) as IngestResponse & { error?: string };
+      const data = (await res.json()) as IngestResponse & {
+        error?: string;
+        code?: string;
+      };
       if (!res.ok) {
         const msg = data.error || "Document ingestion failed.";
         onToast(msg, "error");
+        if (data.code === "MISSING_API_KEY") onRequestApiKey();
         setPipelineLogs((prev) => [
           ...prev,
           {

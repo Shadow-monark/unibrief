@@ -5,6 +5,7 @@ import {
   Calculator,
   CalendarClock,
   ChevronDown,
+  KeyRound,
   MessageSquareText,
   ShieldAlert,
   ShieldCheck,
@@ -26,6 +27,8 @@ interface TopNavProps {
   verifiedNoticeCount: number;
   pendingDeadlineCount: number;
   engineStatus: "groq" | "unconfigured";
+  hasSessionKey: boolean;
+  onOpenKeyModal: () => void;
 }
 
 const BRANCHES: BranchOption[] = ["All", "CSE", "AIML", "ECE", "ME"];
@@ -42,6 +45,8 @@ export function TopNav({
   verifiedNoticeCount,
   pendingDeadlineCount,
   engineStatus,
+  hasSessionKey,
+  onOpenKeyModal,
 }: TopNavProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -132,12 +137,19 @@ export function TopNav({
         {/* Right Controls: Compact Profile Popover + Admin Switch */}
         <div className="order-2 flex items-center gap-2 md:order-3">
           {engineStatus === "unconfigured" && (
-            <span
-              title="Add GROQ_API_KEY in .env.local"
-              className="rounded-full bg-amber-100/90 px-2.5 py-1 text-[11px] font-semibold text-amber-900"
+            <button
+              type="button"
+              onClick={onOpenKeyModal}
+              title="Connect Groq API Key for this session"
+              className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                hasSessionKey
+                  ? "bg-emerald-500/12 text-emerald-800 hover:bg-emerald-500/20"
+                  : "bg-amber-100/90 text-amber-900 hover:bg-amber-200"
+              }`}
             >
-              No Key
-            </span>
+              <KeyRound className="h-3 w-3" aria-hidden="true" />
+              <span>{hasSessionKey ? "Key Ready" : "Connect Key"}</span>
+            </button>
           )}
 
           {/* Profile Popover Trigger */}

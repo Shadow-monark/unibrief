@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { AdminDesk } from "@/components/AdminDesk";
+import { ApiKeyModal } from "@/components/ApiKeyModal";
 import { AskCampusQA } from "@/components/AskCampusQA";
 import { CalmOrbScene } from "@/components/CalmOrbScene";
 import { CircularPreviewModal } from "@/components/CircularPreviewModal";
@@ -15,6 +16,7 @@ import {
   type StudentTab,
   type WorkspaceRole,
 } from "@/components/TopNav";
+import { setClientGroqKey, useClientGroqKey } from "@/lib/client-key";
 import { filterDeadlinesForProfile } from "@/lib/profile";
 import type {
   CampusDbState,
@@ -53,7 +55,9 @@ export function AskCampusApp({
     null
   );
   const [draftEmail, setDraftEmail] = useState<SuggestedEmail | null>(null);
+  const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const sessionGroqKey = useClientGroqKey();
 
   const pushToast = useCallback(
     (message: string, tone: "success" | "error" | "info" = "info") => {
@@ -184,6 +188,8 @@ export function AskCampusApp({
           verifiedNoticeCount={verifiedNoticeCount}
           pendingDeadlineCount={pendingDeadlineCount}
           engineStatus={engineStatus}
+          hasSessionKey={Boolean(sessionGroqKey)}
+          onOpenKeyModal={() => setKeyModalOpen(true)}
         />
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
@@ -192,6 +198,7 @@ export function AskCampusApp({
               notices={state.notices}
               onIngestComplete={refreshState}
               onInspectCircular={(id) => setInspectedNoticeId(id)}
+              onRequestApiKey={() => setKeyModalOpen(true)}
               onToast={pushToast}
             />
           ) : (
@@ -214,6 +221,7 @@ export function AskCampusApp({
                   profile={profile}
                   onInspectCircular={(id) => setInspectedNoticeId(id)}
                   onDraftEmail={(email) => setDraftEmail(email)}
+                  onRequestApiKey={() => setKeyModalOpen(true)}
                   onToast={pushToast}
                 />
               )}
@@ -222,6 +230,7 @@ export function AskCampusApp({
                 <RumorBuster
                   notices={state.notices}
                   onInspectCircular={(id) => setInspectedNoticeId(id)}
+                  onRequestApiKey={() => setKeyModalOpen(true)}
                   onToast={pushToast}
                 />
               )}
@@ -252,6 +261,22 @@ export function AskCampusApp({
         profile={profile}
         onClose={() => setDraftEmail(null)}
         onToast={pushToast}
+      />
+
+      <ApiKeyModal
+        key={keyModalOpen ? "open" : "closed"}
+        open={keyModalOpen}
+        currentKey={sessionGroqKey}
+        onSave={(nextKey) => {
+          setClientGroqKey(nextKey);
+          pushToast(
+            nextKey.trim()
+              ? "Groq API key connected for this browser session."
+              : "Session Groq API key cleared.",
+            "success"
+          );
+        }}
+        onClose={() => setKeyModalOpen(false)}
       />
 
       {/* Frosted Toasts */}

@@ -9,11 +9,13 @@ import {
   ShieldCheck,
   ShieldX,
 } from "lucide-react";
+import { getClientGroqKey } from "@/lib/client-key";
 import type { Notice, VerifyRumorResponse } from "@/types/campus";
 
 interface RumorBusterProps {
   notices: Notice[];
   onInspectCircular: (noticeId: string) => void;
+  onRequestApiKey: () => void;
   onToast: (message: string, tone?: "success" | "error" | "info") => void;
 }
 
@@ -26,6 +28,7 @@ const DEMO_RUMORS = [
 export function RumorBuster({
   notices,
   onInspectCircular,
+  onRequestApiKey,
   onToast,
 }: RumorBusterProps) {
   const [claim, setClaim] = useState("");
@@ -39,16 +42,22 @@ export function RumorBuster({
     setClaim(clean);
     setLoading(true);
     try {
+      const clientKey = getClientGroqKey();
       const res = await fetch("/api/verify-rumor", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(clientKey ? { "x-groq-api-key": clientKey } : {}),
+        },
         body: JSON.stringify({ claim: clean }),
       });
       const data = (await res.json()) as VerifyRumorResponse & {
         error?: string;
+        code?: string;
       };
       if (!res.ok) {
         onToast(data.error || "Rumor verification failed.", "error");
+        if (data.code === "MISSING_API_KEY") onRequestApiKey();
         return;
       }
       setResult(data);

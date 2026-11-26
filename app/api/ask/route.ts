@@ -101,11 +101,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const result = await answerCampusQuestion({
       question,
       profile,
       notices: relevantNotices,
       attachment,
+      apiKeyOverride,
     });
 
     return NextResponse.json(result);

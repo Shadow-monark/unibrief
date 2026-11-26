@@ -25,9 +25,11 @@ export async function POST(req: NextRequest) {
       allNotices.push(notice);
     }
 
+    const apiKeyOverride = req.headers.get("x-groq-api-key") ?? undefined;
     const verification = await verifyCampusRumor({
       claim,
       notices: allNotices,
+      apiKeyOverride,
     });
 
     return NextResponse.json(verification);

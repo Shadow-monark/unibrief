@@ -22,7 +22,7 @@ export class MissingApiKeyError extends Error {
   constructor(message?: string) {
     super(
       message ??
-        "GROQ_API_KEY is missing. Add GROQ_API_KEY=your_groq_key_here to .env.local (see .env.local.example) and restart the server."
+        "GROQ_API_KEY is missing on the server. Add GROQ_API_KEY in Vercel Environment Variables (or .env.local locally), or click 'Connect Key' in the top bar."
     );
     this.name = "MissingApiKeyError";
   }
@@ -243,9 +243,10 @@ async function callGroqJson<T>(
 
 async function generateStructuredJsonWithRetry<T>(
   promptText: string,
-  attachedDocs: ParsedDocumentInput[] = []
+  attachedDocs: ParsedDocumentInput[] = [],
+  apiKeyOverride?: string
 ): Promise<{ data: T; engineUsed: EngineName }> {
-  const groqKey = process.env.GROQ_API_KEY?.trim();
+  const groqKey = process.env.GROQ_API_KEY?.trim() || apiKeyOverride?.trim();
 
   if (!groqKey) {
     throw new MissingApiKeyError();
@@ -312,7 +313,8 @@ export interface ExtractedIngestPayload {
 
 export async function extractNoticeFromDocument(
   doc: ParsedDocumentInput,
-  existingTopics: string[]
+  existingTopics: string[],
+  apiKeyOverride?: string
 ): Promise<{ payload: ExtractedIngestPayload; engineUsed: EngineName }> {
   const todayIso = new Date().toISOString().slice(0, 10);
   const prompt = `You are a university Registrar and Examination Cell document extraction engine.
@@ -357,7 +359,8 @@ Rules:
   const { data, engineUsed } =
     await generateStructuredJsonWithRetry<Partial<ExtractedIngestPayload>>(
       prompt,
-      [doc]
+      [doc],
+      apiKeyOverride
     );
 
   const validBranches = Array.isArray(data.target_branches) && data.target_branches.length > 0
@@ -551,8 +554,9 @@ export async function answerCampusQuestion(params: {
   profile: StudentProfile;
   notices: Notice[];
   attachment?: ParsedDocumentInput | null;
+  apiKeyOverride?: string;
 }): Promise<AskResponse> {
-  const { question, profile, notices, attachment } = params;
+  const { question, profile, notices, attachment, apiKeyOverride } = params;
   const prompt = `You are UniBrief, an authoritative, zero-hallucination university academic assistant.
 Student Profile Context:
 - Branch: ${profile.branch}
@@ -619,7 +623,11 @@ Return STRICT JSON matching this exact schema:
 
   const docs = attachment ? [attachment] : [];
   const { data, engineUsed } =
-    await generateStructuredJsonWithRetry<Partial<AskResponse>>(prompt, docs);
+    await generateStructuredJsonWithRetry<Partial<AskResponse>>(
+      prompt,
+      docs,
+      apiKeyOverride
+    );
 
   const found = Boolean(data.found_in_official_records);
   const citations = found ? sanitizeCitations(data.citations, notices) : [];
@@ -697,8 +705,9 @@ Return STRICT JSON matching this exact schema:
 export async function verifyCampusRumor(params: {
   claim: string;
   notices: Notice[];
+  apiKeyOverride?: string;
 }): Promise<VerifyRumorResponse> {
-  const { claim, notices } = params;
+  const { claim, notices, apiKeyOverride } = params;
   const prompt = `You are the UniBrief Rumor Buster fact-checking engine.
 Evaluate the student's forwarded WhatsApp message/claim strictly against the Official Campus Circulars below.
 
@@ -731,7 +740,11 @@ Return STRICT JSON matching this exact shape:
 }`;
 
   const { data, engineUsed } =
-    await generateStructuredJsonWithRetry<Partial<VerifyRumorResponse>>(prompt);
+    await generateStructuredJsonWithRetry<Partial<VerifyRumorResponse>>(
+      prompt,
+      [],
+      apiKeyOverride
+    );
 
   const verdict: RumorVerdict =
     data.verdict === "VERIFIED" ||

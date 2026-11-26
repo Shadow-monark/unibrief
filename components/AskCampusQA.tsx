@@ -14,6 +14,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { getClientGroqKey } from "@/lib/client-key";
 import { downloadIcsFile } from "@/lib/ics";
 import type {
   AskResponse,
@@ -28,6 +29,7 @@ interface ChatTurn {
   attachmentName?: string;
   response?: AskResponse;
   error?: string;
+  missingKey?: boolean;
   loading?: boolean;
 }
 
@@ -36,6 +38,7 @@ interface AskCampusQAProps {
   profile: StudentProfile;
   onInspectCircular: (noticeId: string) => void;
   onDraftEmail: (email: SuggestedEmail) => void;
+  onRequestApiKey: () => void;
   onToast: (message: string, tone?: "success" | "error" | "info") => void;
 }
 
@@ -51,6 +54,7 @@ export function AskCampusQA({
   profile,
   onInspectCircular,
   onDraftEmail,
+  onRequestApiKey,
   onToast,
 }: AskCampusQAProps) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
@@ -86,17 +90,29 @@ export function AskCampusQA({
     setIsSubmitting(true);
 
     try {
+      const clientKey = getClientGroqKey();
+      const extraHeaders: Record<string, string> = clientKey
+        ? { "x-groq-api-key": clientKey }
+        : {};
+
       let res: Response;
       if (fileToSend) {
         const fd = new FormData();
         fd.append("question", cleanQ);
         fd.append("profile", JSON.stringify(profile));
         fd.append("attachment", fileToSend);
-        res = await fetch("/api/ask", { method: "POST", body: fd });
+        res = await fetch("/api/ask", {
+          method: "POST",
+          headers: extraHeaders,
+          body: fd,
+        });
       } else {
         res = await fetch("/api/ask", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...extraHeaders,
+          },
           body: JSON.stringify({ question: cleanQ, profile }),
         });
       }
@@ -108,12 +124,18 @@ export function AskCampusQA({
 
       if (!res.ok) {
         const errMsg = data.error || "Failed to fetch grounded answer.";
+        const isMissingKey = data.code === "MISSING_API_KEY";
         onToast(errMsg, "error");
         setTurns((prev) =>
           prev.map((t) =>
-            t.id === turnId ? { ...t, loading: false, error: errMsg } : t
+            t.id === turnId
+              ? { ...t, loading: false, error: errMsg, missingKey: isMissingKey }
+              : t
           )
         );
+        if (isMissingKey) {
+          onRequestApiKey();
+        }
         return;
       }
 
@@ -224,8 +246,17 @@ export function AskCampusQA({
 
                 {/* Error */}
                 {turn.error && (
-                  <div className="rounded-2xl bg-rose-50/90 p-4 text-xs text-rose-800 ring-1 ring-rose-200">
-                    {turn.error}
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-rose-50/90 p-4 text-xs text-rose-800 ring-1 ring-rose-200">
+                    <span className="flex-1">{turn.error}</span>
+                    {turn.missingKey && (
+                      <button
+                        type="button"
+                        onClick={onRequestApiKey}
+                        className="cursor-pointer rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                      >
+                        Connect Groq Key
+                      </button>
+                    )}
                   </div>
                 )}
 
