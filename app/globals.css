@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --bg-canvas: #eef4fa;
+  --bg-canvas: #e6eff8;
   --ink-primary: #0f172a;
   --ink-muted: #475569;
   --brand-accent: #1e3a5f;
@@ -25,33 +25,59 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Frosted glassmorphism surfaces */
+/* Frosted glassmorphism surfaces tuned for rich 3D refraction behind */
 .glass-panel {
   background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(22px) saturate(165%);
+  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
   box-shadow:
-    0 10px 36px rgba(15, 23, 42, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    0 12px 40px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
 .glass-card {
   background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px) saturate(155%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow:
-    0 4px 24px rgba(15, 23, 42, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    0 6px 26px rgba(15, 23, 42, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.72);
   border-color: rgba(255, 255, 255, 0.98);
   box-shadow:
-    0 12px 32px rgba(15, 23, 42, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    0 14px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+/* Subtle architectural dot grid fading toward edges */
+.calm-dot-grid {
+  background-image: radial-gradient(rgba(30, 58, 95, 0.14) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, black 25%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, black 25%, transparent 100%);
+}
+
+@keyframes calm-aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0px, 0px, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(28px, -18px, 0) scale(1.06);
+  }
+}
+
+.animate-aurora-slow {
+  animation: calm-aurora-drift 18s ease-in-out infinite;
+}
+
+.animate-aurora-reverse {
+  animation: calm-aurora-drift 22s ease-in-out infinite reverse;
 }
 
 /* Calm range slider */

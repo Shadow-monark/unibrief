@@ -159,18 +159,20 @@ export function AskCampusApp({
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-[#EEF4FA] via-[#F4F8FB] to-[#EAF4F2]">
-      {/* Serene Pastel Mist Glows */}
+    <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-[#DCE9F8] via-[#EEF5FB] to-[#DCEEE8]">
+      {/* Multi-layered Calm Atmospheric Mesh + Architectural Dot Grid */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       >
-        <div className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-sky-200/45 blur-3xl" />
-        <div className="absolute top-1/4 -right-20 h-[480px] w-[480px] rounded-full bg-teal-100/55 blur-3xl" />
-        <div className="absolute -bottom-32 left-1/3 h-[380px] w-[380px] rounded-full bg-blue-100/45 blur-3xl" />
+        <div className="animate-aurora-slow absolute -top-36 -left-24 h-[520px] w-[520px] rounded-full bg-sky-300/35 blur-3xl" />
+        <div className="animate-aurora-reverse absolute top-1/4 -right-24 h-[560px] w-[560px] rounded-full bg-teal-200/45 blur-3xl" />
+        <div className="animate-aurora-slow absolute -bottom-36 left-1/4 h-[460px] w-[460px] rounded-full bg-blue-200/40 blur-3xl" />
+        <div className="absolute top-12 left-1/2 h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-amber-100/35 blur-3xl" />
+        <div className="calm-dot-grid absolute inset-0" />
       </div>
 
-      {/* Interactive 3D Frosted Glass Sculpture */}
+      {/* Interactive 3D Frosted Glass Sculpture + Horizon Wave */}
       <CalmOrbScene />
 
       <div className="relative z-10 flex min-h-dvh flex-col">
