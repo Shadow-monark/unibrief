@@ -2,6 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import type { StudentProfile } from "@/types/campus";
+
+interface CalmOrbSceneProps {
+  profile: StudentProfile;
+}
 
 function createStudioEnvironmentTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
@@ -10,23 +15,21 @@ function createStudioEnvironmentTexture(): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d");
 
   if (ctx) {
-    // Rich sky-pearl to ocean-teal studio dome for crisp glass highlights
     const baseGrad = ctx.createLinearGradient(0, 0, 0, 256);
     baseGrad.addColorStop(0, "#ffffff");
-    baseGrad.addColorStop(0.32, "#bae6fd");
-    baseGrad.addColorStop(0.65, "#5eead4");
+    baseGrad.addColorStop(0.35, "#dbeafe");
+    baseGrad.addColorStop(0.7, "#99f6e4");
     baseGrad.addColorStop(1, "#1e3a5f");
     ctx.fillStyle = baseGrad;
     ctx.fillRect(0, 0, 512, 256);
 
-    // Soft bright specular studio light panels
-    const glow1 = ctx.createRadialGradient(140, 75, 10, 140, 75, 110);
-    glow1.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+    const glow1 = ctx.createRadialGradient(130, 70, 8, 130, 70, 120);
+    glow1.addColorStop(0, "rgba(255, 255, 255, 0.98)");
     glow1.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = glow1;
     ctx.fillRect(0, 0, 512, 256);
 
-    const glow2 = ctx.createRadialGradient(390, 120, 12, 390, 120, 125);
+    const glow2 = ctx.createRadialGradient(380, 140, 10, 380, 140, 130);
     glow2.addColorStop(0, "rgba(186, 230, 253, 0.9)");
     glow2.addColorStop(1, "rgba(186, 230, 253, 0)");
     ctx.fillStyle = glow2;
@@ -39,8 +42,187 @@ function createStudioEnvironmentTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-export function CalmOrbScene() {
+function drawRoundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function paintIdCardFace(
+  canvas: HTMLCanvasElement,
+  profile: StudentProfile
+) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.save();
+  drawRoundedRectPath(ctx, 8, 8, W - 16, H - 16, 48);
+  ctx.clip();
+
+  // Subtle diagonal frosted sheen across glass face
+  const sheen = ctx.createLinearGradient(0, 0, W, H);
+  sheen.addColorStop(0, "rgba(255, 255, 255, 0.42)");
+  sheen.addColorStop(0.45, "rgba(255, 255, 255, 0.10)");
+  sheen.addColorStop(1, "rgba(186, 230, 253, 0.28)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle etched inner glass border
+  drawRoundedRectPath(ctx, 12, 12, W - 24, H - 24, 44);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Top Header Strip
+  ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+  ctx.font = "700 28px system-ui, -apple-system, sans-serif";
+  ctx.fillText("ASKCAMPUS", 58, 78);
+
+  ctx.fillStyle = "rgba(30, 58, 95, 0.58)";
+  ctx.font = "600 16px system-ui, -apple-system, sans-serif";
+  ctx.fillText("UNIVERSITY DIGITAL ID PASS", 58, 108);
+
+  // Top-right Active Status Pill
+  drawRoundedRectPath(ctx, W - 210, 48, 154, 40, 20);
+  ctx.fillStyle = "rgba(16, 185, 129, 0.14)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(16, 185, 129, 0.35)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(W - 184, 68, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#059669";
+  ctx.fill();
+
+  ctx.fillStyle = "#065f46";
+  ctx.font = "600 16px monospace";
+  ctx.fillText("VERIFIED", W - 166, 74);
+
+  // Minimal Frosted Avatar Silhouette Box
+  drawRoundedRectPath(ctx, 58, 164, 152, 186, 26);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Silhouette icon inside avatar box
+  ctx.fillStyle = "rgba(30, 58, 95, 0.36)";
+  ctx.beginPath();
+  ctx.arc(134, 224, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(134, 306, 48, 34, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Smart Chip icon
+  drawRoundedRectPath(ctx, 252, 174, 74, 54, 12);
+  ctx.fillStyle = "rgba(203, 213, 225, 0.55)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(100, 116, 139, 0.45)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(252, 201);
+  ctx.lineTo(326, 201);
+  ctx.moveTo(289, 174);
+  ctx.lineTo(289, 228);
+  ctx.stroke();
+
+  // Student Profile Details (Live reactive to Branch / Sem / Residence)
+  ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
+  ctx.font = "700 32px system-ui, -apple-system, sans-serif";
+  const branchText =
+    profile.branch === "All" ? "B.TECH ALL BRANCHES" : `B.TECH · ${profile.branch}`;
+  ctx.fillText(branchText, 252, 280);
+
+  ctx.fillStyle = "rgba(51, 65, 85, 0.72)";
+  ctx.font = "500 22px system-ui, -apple-system, sans-serif";
+  ctx.fillText(
+    `Semester ${profile.semester}  •  ${profile.residence}`,
+    252,
+    318
+  );
+
+  // Clean Hairline Divider
+  ctx.beginPath();
+  ctx.moveTo(58, 412);
+  ctx.lineTo(W - 58, 412);
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.32)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Bottom Metadata + Minimal Barcode Stripes
+  ctx.fillStyle = "rgba(71, 85, 105, 0.65)";
+  ctx.font = "500 16px monospace";
+  ctx.fillText("ID NO: AC-2026-0304", 58, 468);
+  ctx.fillText("ACADEMIC YEAR 2026–27", 58, 498);
+
+  // Subtle laser-etched barcode
+  const barStart = W - 268;
+  const barWidths = [4, 2, 6, 3, 2, 5, 2, 4, 6, 2, 3, 5, 2, 4, 2, 6, 3, 4];
+  let cursor = barStart;
+  ctx.fillStyle = "rgba(15, 23, 42, 0.42)";
+  for (const w of barWidths) {
+    ctx.fillRect(cursor, 446, w, 58);
+    cursor += w + 5;
+  }
+
+  ctx.restore();
+}
+
+function createRoundedCardShape(
+  width: number,
+  height: number,
+  radius: number
+): THREE.Shape {
+  const shape = new THREE.Shape();
+  const x = -width / 2;
+  const y = -height / 2;
+
+  shape.moveTo(x + radius, y);
+  shape.lineTo(x + width - radius, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+  shape.lineTo(x + width, y + height - radius);
+  shape.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  shape.lineTo(x + radius, y + height);
+  shape.quadraticCurveTo(x, y + height, x, y + height - radius);
+  shape.lineTo(x, y + radius);
+  shape.quadraticCurveTo(x, y, x + radius, y);
+  return shape;
+}
+
+export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const faceCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const faceTexRef = useRef<THREE.CanvasTexture | null>(null);
+
+  useEffect(() => {
+    if (faceCanvasRef.current && faceTexRef.current) {
+      paintIdCardFace(faceCanvasRef.current, profile);
+      faceTexRef.current.needsUpdate = true;
+    }
+  }, [profile]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,11 +247,11 @@ export function CalmOrbScene() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.08;
 
     const scene = new THREE.Scene();
 
-    // Procedural studio environment map so glass & iridescence visibly shimmer
+    // Procedural studio sky reflections for crisp glass edge bevels
     const pmrem = new THREE.PMREMGenerator(renderer);
     const equirectTex = createStudioEnvironmentTexture();
     const envTarget = pmrem.fromEquirectangular(equirectTex);
@@ -78,132 +260,116 @@ export function CalmOrbScene() {
     pmrem.dispose();
 
     const camera = new THREE.PerspectiveCamera(
-      42,
+      40,
       window.innerWidth / window.innerHeight,
       0.1,
-      60
+      50
     );
-    camera.position.set(0, 0.2, 9.2);
-    camera.lookAt(0, 0, -0.5);
+    camera.position.set(0, 0, 9.2);
+    camera.lookAt(0, 0, 0);
 
-    // Balanced light rig
-    const ambient = new THREE.AmbientLight(0xe0f2fe, 1.2);
+    // Serene studio lighting
+    const ambient = new THREE.AmbientLight(0xf1f5f9, 1.4);
     scene.add(ambient);
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(6, 7, 6);
+    keyLight.position.set(5, 6, 7);
     scene.add(keyLight);
 
-    const oceanLight = new THREE.DirectionalLight(0x38bdf8, 1.8);
-    oceanLight.position.set(-6, 2, 4);
-    scene.add(oceanLight);
+    const coolRim = new THREE.DirectionalLight(0x7dd3fc, 1.6);
+    coolRim.position.set(-6, -2, 5);
+    scene.add(coolRim);
 
-    const mintLight = new THREE.PointLight(0x2dd4bf, 2.4, 24);
-    mintLight.position.set(3, -3, 5);
-    scene.add(mintLight);
+    const mintFill = new THREE.PointLight(0x99f6e4, 1.8, 22);
+    mintFill.position.set(2, -3, 5);
+    scene.add(mintFill);
 
-    // Hero Sculpture Group (flowing iridescent glass knot + floating satellites)
-    const sculptureGroup = new THREE.Group();
+    // Card Dimensions
+    const cardW = 4.35;
+    const cardH = 2.72;
+    const cardRadius = 0.22;
+    const cardShape = createRoundedCardShape(cardW, cardH, cardRadius);
+
+    const cardGroup = new THREE.Group();
     const getBasePos = (w: number) =>
-      w >= 1024 ? { x: 2.8, y: 0.45 } : { x: 0.6, y: 1.2 };
+      w >= 1024 ? { x: 2.35, y: 0.1 } : { x: 0.25, y: 0.9 };
     const initPos = getBasePos(window.innerWidth);
-    sculptureGroup.position.set(initPos.x, initPos.y, -0.4);
-    scene.add(sculptureGroup);
+    cardGroup.position.set(initPos.x, initPos.y, 0);
+    cardGroup.rotation.set(0.08, -0.26, -0.04);
+    scene.add(cardGroup);
 
-    // Flowing organic glass torus knot
-    const knotGeo = new THREE.TorusKnotGeometry(1.32, 0.36, 180, 32, 2, 3);
-    const knotMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#60a5fa"),
+    // Main Transparent Glass Slab (Beveled Rounded Rectangle)
+    const slabGeo = new THREE.ExtrudeGeometry(cardShape, {
+      depth: 0.06,
+      bevelEnabled: true,
+      bevelSegments: 5,
+      steps: 1,
+      bevelSize: 0.025,
+      bevelThickness: 0.025,
+    });
+    slabGeo.center();
+
+    const slabMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color("#e0f2fe"),
       roughness: 0.14,
-      metalness: 0.08,
+      metalness: 0.04,
       clearcoat: 1,
       clearcoatRoughness: 0.08,
-      iridescence: 1,
-      iridescenceIOR: 1.38,
-      iridescenceThicknessRange: [140, 560],
-      sheen: 0.85,
-      sheenColor: new THREE.Color("#99f6e4"),
-      envMapIntensity: 1.7,
+      iridescence: 0.65,
+      iridescenceIOR: 1.32,
+      envMapIntensity: 1.65,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.44,
+      side: THREE.DoubleSide,
     });
-    const knotMesh = new THREE.Mesh(knotGeo, knotMat);
-    sculptureGroup.add(knotMesh);
+    const slabMesh = new THREE.Mesh(slabGeo, slabMat);
+    cardGroup.add(slabMesh);
 
-    // Subtle glass halo ring
-    const haloGeo = new THREE.TorusGeometry(2.55, 0.025, 24, 160);
-    const haloMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#0ea5e9"),
-      roughness: 0.15,
-      metalness: 0.2,
-      envMapIntensity: 1.5,
-      transparent: true,
-      opacity: 0.42,
-    });
-    const haloMesh = new THREE.Mesh(haloGeo, haloMat);
-    haloMesh.rotation.set(Math.PI / 2.8, Math.PI / 6, 0);
-    sculptureGroup.add(haloMesh);
+    // Crisp Laser-Etched Front Glass Face
+    const faceCanvas = document.createElement("canvas");
+    faceCanvas.width = 1024;
+    faceCanvas.height = 640;
+    paintIdCardFace(faceCanvas, profile);
+    faceCanvasRef.current = faceCanvas;
 
-    // Floating depth glass spheres around the canvas
-    const satGeo1 = new THREE.SphereGeometry(0.62, 48, 48);
-    const satMat1 = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#38bdf8"),
-      roughness: 0.12,
-      metalness: 0.05,
-      clearcoat: 1,
-      iridescence: 0.9,
-      envMapIntensity: 1.6,
-      transparent: true,
-      opacity: 0.78,
-    });
-    const satMesh1 = new THREE.Mesh(satGeo1, satMat1);
-    satMesh1.position.set(-3.9, 1.5, -1.6);
-    scene.add(satMesh1);
+    const faceTex = new THREE.CanvasTexture(faceCanvas);
+    faceTex.colorSpace = THREE.SRGBColorSpace;
+    faceTex.anisotropy = 4;
+    faceTexRef.current = faceTex;
 
-    const satGeo2 = new THREE.SphereGeometry(0.42, 40, 40);
-    const satMat2 = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#2dd4bf"),
-      roughness: 0.16,
-      metalness: 0.08,
-      clearcoat: 1,
-      iridescence: 0.8,
-      envMapIntensity: 1.5,
+    const faceGeo = new THREE.PlaneGeometry(cardW + 0.03, cardH + 0.03);
+    const faceMat = new THREE.MeshBasicMaterial({
+      map: faceTex,
       transparent: true,
-      opacity: 0.74,
+      depthWrite: false,
     });
-    const satMesh2 = new THREE.Mesh(satGeo2, satMat2);
-    satMesh2.position.set(-3.1, -1.6, 0.6);
-    scene.add(satMesh2);
+    const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+    faceMesh.position.z = 0.062;
+    cardGroup.add(faceMesh);
 
-    const satGeo3 = new THREE.SphereGeometry(0.28, 32, 32);
-    const satMat3 = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#818cf8"),
-      roughness: 0.18,
-      clearcoat: 1,
-      envMapIntensity: 1.5,
-      transparent: true,
-      opacity: 0.62,
+    // Subtle Echo Translucent Backing Rectangle for calm 3D depth
+    const backCardGeo = new THREE.ExtrudeGeometry(cardShape, {
+      depth: 0.04,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      steps: 1,
+      bevelSize: 0.02,
+      bevelThickness: 0.02,
     });
-    const satMesh3 = new THREE.Mesh(satGeo3, satMat3);
-    satMesh3.position.set(1.1, -2.1, 0.9);
-    scene.add(satMesh3);
+    backCardGeo.center();
 
-    // Calm undulating 3D horizon wave mesh at bottom
-    const waveGeo = new THREE.PlaneGeometry(26, 12, 48, 22);
-    const waveBaseZ = new Float32Array(waveGeo.attributes.position.count);
-    for (let i = 0; i < waveBaseZ.length; i++) {
-      waveBaseZ[i] = waveGeo.attributes.position.getZ(i);
-    }
-    const waveMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color("#0284c7"),
-      wireframe: true,
+    const backCardMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color("#99f6e4"),
+      roughness: 0.22,
+      clearcoat: 0.8,
+      envMapIntensity: 1.3,
       transparent: true,
-      opacity: 0.09,
+      opacity: 0.22,
     });
-    const waveMesh = new THREE.Mesh(waveGeo, waveMat);
-    waveMesh.rotation.x = -Math.PI / 2.35;
-    waveMesh.position.set(0, -2.85, -3.5);
-    scene.add(waveMesh);
+    const backCardMesh = new THREE.Mesh(backCardGeo, backCardMat);
+    backCardMesh.position.set(-0.65, -0.38, -0.95);
+    backCardMesh.rotation.set(0.05, 0.14, 0.08);
+    cardGroup.add(backCardMesh);
 
     const onResize = () => {
       if (!renderer) return;
@@ -211,8 +377,8 @@ export function CalmOrbScene() {
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       const pos = getBasePos(window.innerWidth);
-      sculptureGroup.position.x = pos.x;
-      sculptureGroup.position.y = pos.y;
+      cardGroup.position.x = pos.x;
+      cardGroup.position.y = pos.y;
     };
     window.addEventListener("resize", onResize);
 
@@ -223,38 +389,17 @@ export function CalmOrbScene() {
       renderer.render(scene, camera);
     } else {
       let elapsed = 0;
-      const posAttr = waveGeo.attributes.position;
-
       renderer.setAnimationLoop(() => {
         timer.update();
         const dt = Math.min(Math.max(timer.getDelta(), 0), 0.1);
         elapsed += dt;
 
-        // Peaceful steady rotation of centerpiece sculpture
-        knotMesh.rotation.y += dt * 0.14;
-        knotMesh.rotation.x += dt * 0.07;
-        haloMesh.rotation.z += dt * 0.1;
-
+        // Calm steady floating & gentle breathing tilt (zero pointer-hover sway)
         const base = getBasePos(window.innerWidth);
-        sculptureGroup.position.x = base.x;
-        sculptureGroup.position.y = base.y + Math.sin(elapsed * 0.55) * 0.12;
-
-        // Gentle floating spheres
-        satMesh1.position.y = 1.5 + Math.sin(elapsed * 0.55) * 0.22;
-        satMesh2.position.y = -1.6 + Math.cos(elapsed * 0.65) * 0.2;
-        satMesh3.position.y = -2.1 + Math.sin(elapsed * 0.8 + 1.2) * 0.16;
-
-        // Undulating calm wave mesh
-        for (let i = 0; i < posAttr.count; i++) {
-          const vx = posAttr.getX(i);
-          const vy = posAttr.getY(i);
-          const z =
-            waveBaseZ[i] +
-            Math.sin(vx * 0.45 + elapsed * 0.65) * 0.26 +
-            Math.cos(vy * 0.55 + elapsed * 0.45) * 0.2;
-          posAttr.setZ(i, z);
-        }
-        posAttr.needsUpdate = true;
+        cardGroup.position.x = base.x;
+        cardGroup.position.y = base.y + Math.sin(elapsed * 0.55) * 0.13;
+        cardGroup.rotation.y = -0.26 + Math.sin(elapsed * 0.35) * 0.12;
+        cardGroup.rotation.x = 0.08 + Math.cos(elapsed * 0.4) * 0.05;
 
         renderer?.render(scene, camera);
       });
@@ -265,20 +410,17 @@ export function CalmOrbScene() {
       renderer?.setAnimationLoop(null);
       timer.dispose();
       envTarget.dispose();
-      knotGeo.dispose();
-      knotMat.dispose();
-      haloGeo.dispose();
-      haloMat.dispose();
-      satGeo1.dispose();
-      satMat1.dispose();
-      satGeo2.dispose();
-      satMat2.dispose();
-      satGeo3.dispose();
-      satMat3.dispose();
-      waveGeo.dispose();
-      waveMat.dispose();
+      slabGeo.dispose();
+      slabMat.dispose();
+      faceGeo.dispose();
+      faceMat.dispose();
+      faceTex.dispose();
+      backCardGeo.dispose();
+      backCardMat.dispose();
       renderer?.dispose();
     };
+    // Intentionally mounted once; profile updates repaint faceCanvas in separate effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
