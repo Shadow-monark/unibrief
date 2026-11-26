@@ -8,7 +8,8 @@ import {
   Clock,
   ExternalLink,
   FileCheck2,
-  ShieldAlert,
+  Flame,
+  Sparkles,
 } from "lucide-react";
 import { downloadIcsFile } from "@/lib/ics";
 import { filterDeadlinesForProfile, getDeadlineCountdown } from "@/lib/profile";
@@ -40,84 +41,143 @@ export function DeadlineRadar({
     true
   ).filter((d) => d.status === "superseded").length;
 
-  const pendingCount = activeDeadlines.filter((d) => !d.completed).length;
-  const criticalPendingCount = activeDeadlines.filter(
-    (d) => !d.completed && d.urgency === "critical"
+  const pendingList = activeDeadlines.filter((d) => !d.completed);
+  const criticalPendingCount = pendingList.filter(
+    (d) => d.urgency === "critical"
   ).length;
   const completedCount = activeDeadlines.filter((d) => d.completed).length;
 
+  const prioritySpotlight =
+    pendingList.find((d) => d.urgency === "critical") ?? pendingList[0] ?? null;
+
   return (
     <div className="space-y-6">
-      {/* Header + Metric Strip */}
-      <section className="rounded-sm border border-[#CBD5E1] bg-white p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-semibold tracking-tight text-[#0F172A]">
-              Anti-Fine Deadline Radar
-            </h1>
-            <p className="mt-1 text-sm text-[#475569]">
-              Active obligations filtered for{" "}
-              <span className="font-semibold text-[#0F172A]">
-                {profile.branch === "All" ? "All Branches" : profile.branch} ·
-                Sem {profile.semester} · {profile.residence}
-              </span>
-              . Superseded circulars are automatically retired so you never act
-              on outdated dates.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <MetricCell
-              label="Pending"
-              value={pendingCount}
-              tone="neutral"
-            />
-            <MetricCell
-              label="Critical Fines"
-              value={criticalPendingCount}
-              tone={criticalPendingCount > 0 ? "danger" : "neutral"}
-            />
-            <MetricCell
-              label="Done"
-              value={completedCount}
-              tone="success"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Main Split: Deadlines Ledger + Live Alert Feed */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Deadlines List (8 cols) */}
-        <div className="space-y-3 lg:col-span-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#0F172A]">
-              Upcoming Action Items ({activeDeadlines.length})
-            </h2>
+      {/* Header Row */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+            Deadline Radar
+          </h1>
+          <p className="mt-1 text-sm text-zinc-600">
+            Tailored for{" "}
+            <span className="font-semibold text-zinc-900">
+              {profile.branch === "All" ? "All Branches" : profile.branch} ·
+              Semester {profile.semester} · {profile.residence}
+            </span>
             {supersededCount > 0 && (
-              <span className="font-mono text-xs text-[#475569]">
-                {supersededCount} outdated deadline hidden
+              <span className="ml-1.5 text-zinc-500">
+                ({supersededCount} outdated schedule retired automatically)
               </span>
             )}
+          </p>
+        </div>
+
+        {/* Summary Stat Chips */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <StatPill label="Pending" value={pendingList.length} tone="neutral" />
+          <StatPill
+            label="Critical Fines"
+            value={criticalPendingCount}
+            tone={criticalPendingCount > 0 ? "danger" : "neutral"}
+          />
+          <StatPill label="Done" value={completedCount} tone="success" />
+        </div>
+      </div>
+
+      {/* Priority Spotlight Card */}
+      {prioritySpotlight && (
+        <section className="relative overflow-hidden rounded-2xl border border-rose-200/90 bg-gradient-to-r from-rose-50/80 via-white to-white p-5 shadow-[0_2px_10px_rgba(225,29,72,0.05)] sm:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                  <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+                  Priority Action
+                </span>
+                <span className="rounded-full bg-rose-100 px-2.5 py-0.5 font-mono text-xs font-semibold text-rose-800 tabular-nums">
+                  {getDeadlineCountdown(prioritySpotlight.due_date).label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onInspectCircular(prioritySpotlight.notice_id)}
+                  className="cursor-pointer rounded-full border border-zinc-200 bg-white px-2.5 py-0.5 font-mono text-xs font-medium text-zinc-700 transition hover:border-zinc-400"
+                >
+                  {prioritySpotlight.circular_no}
+                </button>
+              </div>
+              <h2 className="text-lg font-semibold text-zinc-900">
+                {prioritySpotlight.title}
+              </h2>
+              <p className="text-sm text-rose-800">
+                <span className="font-semibold">Penalty at risk:</span>{" "}
+                {prioritySpotlight.penalty_impact} · Due{" "}
+                <span className="font-mono font-medium">
+                  {prioritySpotlight.due_date} ({prioritySpotlight.due_time})
+                </span>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() =>
+                  downloadIcsFile({
+                    uid: `${prioritySpotlight.id}@askcampus.edu`,
+                    title: prioritySpotlight.title,
+                    date: prioritySpotlight.due_date,
+                    time: prioritySpotlight.due_time,
+                    circularNo: prioritySpotlight.circular_no,
+                    description: `Penalty: ${prioritySpotlight.penalty_impact}`,
+                  })
+                }
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 shadow-2xs transition hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                <CalendarPlus className="h-4 w-4 text-[#1E3A5F]" aria-hidden="true" />
+                Save to Calendar (.ics)
+              </button>
+              <button
+                type="button"
+                disabled={togglingId === prioritySpotlight.id}
+                onClick={() =>
+                  onToggleDeadline(prioritySpotlight.id, true)
+                }
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-zinc-800 disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" aria-hidden="true" />
+                Mark Done
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Deadlines Cards (8 cols) */}
+        <div className="space-y-3.5 lg:col-span-8">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-semibold text-zinc-800">
+              All Active Deadlines ({activeDeadlines.length})
+            </h2>
           </div>
 
           {activeDeadlines.length === 0 ? (
-            <div className="rounded-sm border border-[#CBD5E1] bg-white p-8 text-center">
+            <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center shadow-[0_1px_3px_rgba(15,23,42,0.03)]">
               <FileCheck2
-                className="mx-auto h-8 w-8 text-[#475569]"
+                className="mx-auto h-9 w-9 text-zinc-400"
                 aria-hidden="true"
               />
-              <p className="mt-3 text-sm font-medium text-[#0F172A]">
-                No active deadlines match {profile.branch} Sem{" "}
-                {profile.semester} ({profile.residence}).
+              <p className="mt-3 text-sm font-semibold text-zinc-900">
+                No active deadlines for {profile.branch} Semester{" "}
+                {profile.semester} ({profile.residence})
               </p>
-              <p className="mt-1 text-xs text-[#475569]">
-                Switch Branch to &ldquo;All&rdquo; or ingest a new circular in
-                Admin / CR Desk.
+              <p className="mt-1 text-xs text-zinc-500">
+                Switch Branch to &ldquo;All Branches&rdquo; or upload a circular
+                in Admin Desk.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#CBD5E1] rounded-sm border border-[#CBD5E1] bg-white">
+            <div className="space-y-3">
               {activeDeadlines.map((deadline) => {
                 const countdown = getDeadlineCountdown(deadline.due_date);
                 const notice = notices.find((n) => n.id === deadline.notice_id);
@@ -126,12 +186,14 @@ export function DeadlineRadar({
                 return (
                   <article
                     key={deadline.id}
-                    className={`p-4 sm:p-5 transition-colors duration-150 ${
-                      deadline.completed ? "bg-[#F7F8FA]/80" : "bg-white"
+                    className={`group rounded-2xl border p-5 transition-all duration-200 ${
+                      deadline.completed
+                        ? "border-zinc-200/70 bg-zinc-50/70 opacity-80"
+                        : "border-zinc-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)] hover:border-zinc-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.05)]"
                     }`}
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      {/* Left: Checkbox + Core Details */}
+                      {/* Left: Check button + Content */}
                       <div className="flex items-start gap-3.5 min-w-0">
                         <button
                           type="button"
@@ -141,81 +203,78 @@ export function DeadlineRadar({
                           disabled={isToggling}
                           aria-label={
                             deadline.completed
-                              ? `Mark ${deadline.title} as pending`
+                              ? `Reopen ${deadline.title}`
                               : `Mark ${deadline.title} as done`
                           }
                           aria-pressed={deadline.completed}
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-xs border transition-colors ${
+                          className={`mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all ${
                             deadline.completed
-                              ? "border-[#166534] bg-[#166534] text-white"
-                              : "border-[#64748B] bg-white hover:border-[#1E3A5F]"
+                              ? "border-emerald-600 bg-emerald-600 text-white"
+                              : "border-zinc-300 bg-white text-transparent hover:border-zinc-900"
                           } disabled:opacity-50`}
                         >
-                          {deadline.completed && (
-                            <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                          )}
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
 
-                        <div className="min-w-0 space-y-2">
+                        <div className="min-w-0 space-y-2.5">
                           <div className="flex flex-wrap items-center gap-2">
-                            <CountdownBadge
+                            <CountdownPill
                               label={countdown.label}
                               tone={
                                 deadline.completed ? "done" : countdown.tone
                               }
                             />
-                            <UrgencyTag urgency={deadline.urgency} />
+                            <UrgencyPill urgency={deadline.urgency} />
                             <button
                               type="button"
                               onClick={() =>
                                 onInspectCircular(deadline.notice_id)
                               }
-                              className="cursor-pointer rounded-sm border border-[#CBD5E1] bg-[#EFF2F6] px-2 py-0.5 font-mono text-xs font-medium text-[#1E3A5F] hover:border-[#1E3A5F] hover:bg-white"
+                              className="cursor-pointer rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 font-mono text-xs font-medium text-[#1E3A5F] transition hover:border-[#1E3A5F] hover:bg-white"
                             >
                               {deadline.circular_no}
                             </button>
                           </div>
 
                           <h3
-                            className={`text-base font-semibold ${
+                            className={`text-base font-semibold tracking-tight ${
                               deadline.completed
-                                ? "text-[#475569] line-through"
-                                : "text-[#0F172A]"
+                                ? "text-zinc-500 line-through"
+                                : "text-zinc-900"
                             }`}
                           >
                             {deadline.title}
                           </h3>
 
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#475569]">
-                            <span className="inline-flex items-center gap-1.5 font-mono tabular-nums text-[#0F172A]">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-zinc-600">
+                            <span className="inline-flex items-center gap-1.5 font-mono font-medium text-zinc-800 tabular-nums">
                               <Clock
-                                className="h-3.5 w-3.5 text-[#1E3A5F]"
+                                className="h-3.5 w-3.5 text-zinc-400"
                                 aria-hidden="true"
                               />
                               {deadline.due_date} · {deadline.due_time}
                             </span>
-                            <span>
-                              Target: {deadline.target_branches.join(", ")} ·
-                              Sem{" "}
+                            <span className="text-zinc-500">
+                              {deadline.target_branches.join(", ")} · Sem{" "}
                               {deadline.target_semesters.length === 8
                                 ? "All"
                                 : deadline.target_semesters.join(", ")}
                             </span>
                           </div>
 
-                          {/* Penalty Impact Tag */}
-                          <div className="inline-flex items-center gap-1.5 rounded-sm border border-[#FCA5A5] bg-[#FEF2F2] px-2.5 py-1 text-xs font-medium text-[#991B1B]">
+                          {/* Penalty Chip */}
+                          <div className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200/80 bg-rose-50/80 px-3 py-1.5 text-xs font-medium text-rose-800">
                             <AlertOctagon
-                              className="h-3.5 w-3.5 shrink-0"
+                              className="h-3.5 w-3.5 shrink-0 text-rose-600"
                               aria-hidden="true"
                             />
-                            <span>Penalty: {deadline.penalty_impact}</span>
+                            <span>{deadline.penalty_impact}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right: Action Buttons */}
-                      <div className="flex shrink-0 flex-wrap items-center gap-2 pl-8 sm:flex-col sm:items-end sm:pl-0">
+                      {/* Right Actions */}
+                      <div className="flex shrink-0 flex-wrap items-center gap-2 pl-9 sm:flex-col sm:items-end sm:pl-0">
                         <button
                           type="button"
                           onClick={() =>
@@ -230,24 +289,13 @@ export function DeadlineRadar({
                               }`,
                             })
                           }
-                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-sm border border-[#1E3A5F] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E3A5F] transition-colors hover:bg-[#1E3A5F] hover:text-white"
+                          className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-800 transition hover:border-zinc-900 hover:bg-zinc-900 hover:text-white"
                         >
                           <CalendarPlus
                             className="h-3.5 w-3.5"
                             aria-hidden="true"
                           />
-                          Add to Calendar (.ics)
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onToggleDeadline(deadline.id, !deadline.completed)
-                          }
-                          disabled={isToggling}
-                          className="cursor-pointer rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] px-2.5 py-1 text-xs font-medium text-[#334155] hover:bg-[#EFF2F6] disabled:opacity-50"
-                        >
-                          {deadline.completed ? "Reopen Task" : "Mark as Done"}
+                          Add .ics
                         </button>
 
                         {deadline.action_url && (
@@ -255,9 +303,9 @@ export function DeadlineRadar({
                             href={deadline.action_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-medium text-[#1E3A5F] underline underline-offset-2 hover:text-[#162C49]"
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#1E3A5F] hover:underline"
                           >
-                            ERP Portal
+                            Open ERP
                             <ExternalLink
                               className="h-3 w-3"
                               aria-hidden="true"
@@ -273,58 +321,62 @@ export function DeadlineRadar({
           )}
         </div>
 
-        {/* Live Alert Feed (4 cols) */}
-        <aside className="space-y-3 lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <h2 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0F172A]">
+        {/* Right: Live Alert Timeline (4 cols) */}
+        <aside className="space-y-3.5 lg:col-span-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-800">
               <BellRing
                 className="h-4 w-4 text-[#1E3A5F]"
                 aria-hidden="true"
               />
-              Live Alert Feed
+              Live Alert Stream
             </h2>
-            <span className="font-mono text-xs text-[#475569] tabular-nums">
+            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600 tabular-nums">
+              <Sparkles className="h-3 w-3" aria-hidden="true" />
               {alertLogs.length} events
             </span>
           </div>
 
-          <div className="divide-y divide-[#E2E8F0] rounded-sm border border-[#CBD5E1] bg-white">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
             {alertLogs.length === 0 ? (
-              <p className="p-5 text-xs text-[#475569]">
+              <p className="text-xs text-zinc-500">
                 No alerts dispatched yet.
               </p>
             ) : (
-              alertLogs.slice(0, 12).map((alert) => (
-                <div key={alert.id} className="space-y-1.5 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onInspectCircular(alert.notice_id)}
-                      className="cursor-pointer font-mono text-xs font-semibold text-[#1E3A5F] hover:underline"
-                    >
-                      {alert.circular_no}
-                    </button>
+              <div className="relative space-y-5 before:absolute before:top-2 before:bottom-2 before:left-[7px] before:w-px before:bg-zinc-200">
+                {alertLogs.slice(0, 10).map((alert) => (
+                  <div key={alert.id} className="relative pl-6">
                     <span
-                      className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase ${
+                      className={`absolute top-1.5 left-0 h-3.5 w-3.5 rounded-full border-2 border-white ring-1 ${
                         alert.channel === "webhook"
-                          ? "border-[#86EFAC] bg-[#F0FDF4] text-[#166534]"
-                          : "border-[#CBD5E1] bg-[#F7F8FA] text-[#475569]"
+                          ? "bg-emerald-500 ring-emerald-200"
+                          : "bg-[#1E3A5F] ring-zinc-200"
                       }`}
-                    >
-                      {alert.channel === "webhook" ? "Webhook" : "In-App"}
-                    </span>
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onInspectCircular(alert.notice_id)}
+                        className="cursor-pointer font-mono text-xs font-semibold text-[#1E3A5F] hover:underline"
+                      >
+                        {alert.circular_no}
+                      </button>
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 uppercase">
+                        {alert.channel === "webhook" ? "Webhook" : "In-App"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-700">
+                      {alert.message}
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-400 tabular-nums">
+                      {new Date(alert.sent_at).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
                   </div>
-                  <p className="text-xs leading-relaxed text-[#334155]">
-                    {alert.message}
-                  </p>
-                  <p className="font-mono text-[11px] text-[#475569] tabular-nums">
-                    {new Date(alert.sent_at).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </aside>
@@ -333,7 +385,7 @@ export function DeadlineRadar({
   );
 }
 
-function MetricCell({
+function StatPill({
   label,
   value,
   tone,
@@ -344,24 +396,22 @@ function MetricCell({
 }) {
   const styles =
     tone === "danger"
-      ? "border-[#FCA5A5] bg-[#FEF2F2] text-[#991B1B]"
+      ? "border-rose-200 bg-rose-50 text-rose-800"
       : tone === "success"
-        ? "border-[#86EFAC] bg-[#F0FDF4] text-[#166534]"
-        : "border-[#CBD5E1] bg-[#F7F8FA] text-[#0F172A]";
+        ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+        : "border-zinc-200 bg-white text-zinc-800";
 
   return (
-    <div className={`rounded-sm border px-3 py-2 text-center ${styles}`}>
-      <div className="font-mono text-lg font-semibold leading-none tabular-nums">
-        {value}
-      </div>
-      <div className="mt-1 text-[11px] font-medium whitespace-nowrap">
-        {label}
-      </div>
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs shadow-2xs ${styles}`}
+    >
+      <span className="font-bold tabular-nums">{value}</span>
+      <span className="font-medium opacity-80">{label}</span>
     </div>
   );
 }
 
-function CountdownBadge({
+function CountdownPill({
   label,
   tone,
 }: {
@@ -370,50 +420,49 @@ function CountdownBadge({
 }) {
   if (tone === "done") {
     return (
-      <span className="rounded-sm border border-[#86EFAC] bg-[#F0FDF4] px-2 py-0.5 font-mono text-xs font-semibold text-[#166534]">
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
         Completed
       </span>
     );
   }
   if (tone === "overdue") {
     return (
-      <span className="rounded-sm border border-[#FCA5A5] bg-[#FEF2F2] px-2 py-0.5 font-mono text-xs font-semibold text-[#991B1B] tabular-nums">
+      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 tabular-nums">
         {label}
       </span>
     );
   }
   if (tone === "soon") {
     return (
-      <span className="rounded-sm border border-[#FCD34D] bg-[#FFFBEB] px-2 py-0.5 font-mono text-xs font-semibold text-[#92400E] tabular-nums">
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-200 tabular-nums">
         {label}
       </span>
     );
   }
   return (
-    <span className="rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] px-2 py-0.5 font-mono text-xs font-semibold text-[#1E3A5F] tabular-nums">
+    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-[#1E3A5F] tabular-nums">
       {label}
     </span>
   );
 }
 
-function UrgencyTag({ urgency }: { urgency: Deadline["urgency"] }) {
+function UrgencyPill({ urgency }: { urgency: Deadline["urgency"] }) {
   if (urgency === "critical") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-sm bg-[#991B1B] px-2 py-0.5 font-mono text-[11px] font-semibold text-white uppercase">
-        <ShieldAlert className="h-3 w-3" aria-hidden="true" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-semibold text-white">
         Critical
       </span>
     );
   }
   if (urgency === "high") {
     return (
-      <span className="rounded-sm border border-[#FCD34D] bg-[#FFFBEB] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#92400E] uppercase">
-        High
+      <span className="inline-flex items-center rounded-full bg-amber-100/80 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900">
+        High Priority
       </span>
     );
   }
   return (
-    <span className="rounded-sm border border-[#CBD5E1] bg-white px-2 py-0.5 font-mono text-[11px] font-medium text-[#475569] uppercase">
+    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">
       Normal
     </span>
   );

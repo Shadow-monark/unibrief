@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
+  Forward,
   Loader2,
   SearchCheck,
   ShieldAlert,
@@ -20,15 +21,15 @@ interface RumorBusterProps {
 
 const DEMO_RUMORS = [
   {
-    label: "Mid-Sem Date Rumor (Outdated)",
+    tag: "Schedule Rumor",
     text: "Guys confirm news: Sem 3 Mid-Sem starts 28 Nov!",
   },
   {
-    label: "Sudden Holiday Forward (Fake)",
+    tag: "WhatsApp Forward",
     text: "Kal college mein sudden holiday declare ho gaya hai!",
   },
   {
-    label: "Medical Relaxation Check (Verified)",
+    tag: "Policy Check",
     text: "Medical grounds pe 65% attendance pe exam de sakte hain?",
   },
 ];
@@ -73,34 +74,43 @@ export function RumorBuster({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-sm border border-[#CBD5E1] bg-white p-5 sm:p-6">
-        <div className="max-w-3xl">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-[#0F172A]">
-            WhatsApp Rumor Buster
-          </h1>
-          <p className="mt-1 text-sm text-[#475569]">
-            Paste any forwarded campus WhatsApp message, rumor, or unverified
-            screenshot text. AskCampus cross-checks it against all{" "}
-            <span className="font-mono font-semibold text-[#0F172A]">
-              {notices.length}
-            </span>{" "}
-            active and superseded official circulars.
-          </p>
-        </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+          WhatsApp Rumor Buster
+        </h1>
+        <p className="mx-auto mt-1.5 max-w-xl text-sm text-zinc-600">
+          Fact-check any forwarded message against{" "}
+          <span className="font-semibold text-zinc-900">
+            {notices.length} active &amp; superseded
+          </span>{" "}
+          campus circulars in seconds.
+        </p>
+      </div>
 
-        {/* One-Click Demo Presets */}
-        <div className="mt-4 flex flex-wrap gap-2">
+      {/* Input Studio Card */}
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-6">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {DEMO_RUMORS.map((preset) => (
             <button
               key={preset.text}
               type="button"
               disabled={loading}
               onClick={() => verifyClaim(preset.text)}
-              className="cursor-pointer rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] px-3 py-1.5 text-left text-xs font-medium text-[#1E3A5F] hover:border-[#1E3A5F] hover:bg-white disabled:opacity-50"
+              className="group cursor-pointer rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 text-left transition hover:border-zinc-300 hover:bg-white hover:shadow-xs disabled:opacity-50"
             >
-              <span className="font-semibold">{preset.label}:</span>{" "}
-              <span className="text-[#334155]">&ldquo;{preset.text}&rdquo;</span>
+              <div className="flex items-center justify-between text-[11px] font-medium text-zinc-500">
+                <span className="inline-flex items-center gap-1 italic">
+                  <Forward className="h-3 w-3" aria-hidden="true" />
+                  Forwarded
+                </span>
+                <span className="font-semibold text-[#1E3A5F]">
+                  {preset.tag}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs font-medium leading-relaxed text-zinc-800">
+                &ldquo;{preset.text}&rdquo;
+              </p>
             </button>
           ))}
         </div>
@@ -112,84 +122,81 @@ export function RumorBuster({
           }}
           className="mt-4 space-y-3"
         >
-          <label className="block text-xs font-semibold uppercase tracking-wide text-[#475569]">
-            Forwarded Claim or Message
-            <textarea
-              rows={3}
-              value={claim}
-              onChange={(e) => setClaim(e.target.value)}
-              placeholder="Paste WhatsApp forward here..."
-              className="mt-1.5 w-full rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] p-3 text-sm text-[#0F172A] placeholder:text-[#64748B]"
-            />
-          </label>
+          <textarea
+            rows={3}
+            value={claim}
+            onChange={(e) => setClaim(e.target.value)}
+            aria-label="Forwarded message or claim to verify"
+            placeholder="Paste any campus WhatsApp forward or rumor here..."
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-zinc-100"
+          />
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={loading || !claim.trim()}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-sm bg-[#1E3A5F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#162C49] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
                 <SearchCheck className="h-4 w-4" aria-hidden="true" />
               )}
-              <span>Verify Against Official Circulars</span>
+              <span>Verify Claim</span>
             </button>
           </div>
         </form>
       </section>
 
-      {/* Verdict Display */}
+      {/* Verdict Card */}
       {result && (
-        <section className="rounded-sm border border-[#CBD5E1] bg-white p-6">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
           <VerdictBanner result={result} />
 
-          <p className="mt-4 text-sm leading-relaxed text-[#0F172A]">
+          <p className="mt-4 text-sm leading-relaxed text-zinc-700">
             {result.explanation}
           </p>
 
           {(result.active_circular_ref || result.outdated_circular_ref) && (
-            <div className="mt-4 flex flex-wrap gap-3 text-xs">
+            <div className="mt-4 flex flex-wrap gap-2.5 text-xs">
               {result.outdated_circular_ref && (
-                <span className="rounded-sm border border-[#FCD34D] bg-[#FFFBEB] px-2.5 py-1 font-mono font-medium text-[#92400E]">
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 font-mono font-medium text-amber-900">
                   Outdated Ref: {result.outdated_circular_ref}
                 </span>
               )}
               {result.active_circular_ref && (
-                <span className="rounded-sm border border-[#86EFAC] bg-[#F0FDF4] px-2.5 py-1 font-mono font-medium text-[#166534]">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 font-mono font-medium text-emerald-800">
                   Active Official Ref: {result.active_circular_ref}
                 </span>
               )}
             </div>
           )}
 
-          {/* Citation Cards */}
           {result.citations.length > 0 && (
-            <div className="mt-5 space-y-2.5">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-[#475569]">
-                Supporting Source Circulars
+            <div className="mt-5 space-y-2.5 border-t border-zinc-100 pt-4">
+              <h2 className="text-xs font-semibold text-zinc-500">
+                Supporting Source Proof
               </h2>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {result.citations.map((cit, idx) => (
                   <button
                     key={`${cit.notice_id}-${idx}`}
                     type="button"
                     onClick={() => onInspectCircular(cit.notice_id)}
-                    className="group cursor-pointer rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] p-4 text-left transition-colors hover:border-[#1E3A5F] hover:bg-white"
+                    className="group cursor-pointer rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 text-left transition hover:border-zinc-400 hover:bg-white"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-xs font-semibold text-[#1E3A5F]">
-                        {cit.circular_no} · Page {cit.page}
+                        {cit.circular_no} · p.{cit.page}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-[#475569] group-hover:text-[#1E3A5F]">
-                        Inspect
-                        <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                      </span>
+                      <ArrowUpRight
+                        className="h-4 w-4 text-zinc-400 transition group-hover:text-zinc-900"
+                        aria-hidden="true"
+                      />
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-[#0F172A]">
+                    <p className="mt-1 text-sm font-semibold text-zinc-900">
                       {cit.title}
                     </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-[#475569]">
+                    <p className="mt-1.5 text-xs leading-relaxed text-zinc-600">
                       &ldquo;{cit.excerpt}&rdquo;
                     </p>
                   </button>
@@ -206,20 +213,17 @@ export function RumorBuster({
 function VerdictBanner({ result }: { result: VerifyRumorResponse }) {
   if (result.verdict === "VERIFIED") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[#86EFAC] bg-[#F0FDF4] p-4">
-        <div className="flex items-center gap-3">
-          <ShieldCheck
-            className="h-6 w-6 shrink-0 text-[#166534]"
-            aria-hidden="true"
-          />
-          <div>
-            <span className="inline-block rounded-sm bg-[#166534] px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-white">
-              VERIFIED
-            </span>
-            <h2 className="mt-1 font-serif text-lg font-semibold text-[#166534]">
-              {result.headline}
-            </h2>
-          </div>
+      <div className="flex items-center gap-3.5 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+          <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div>
+          <span className="inline-block rounded-full bg-emerald-700 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-white">
+            VERIFIED
+          </span>
+          <h2 className="mt-1 text-base font-bold text-emerald-950">
+            {result.headline}
+          </h2>
         </div>
       </div>
     );
@@ -227,43 +231,39 @@ function VerdictBanner({ result }: { result: VerifyRumorResponse }) {
 
   if (result.verdict === "OUTDATED") {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[#FCD34D] bg-[#FFFBEB] p-4">
-        <div className="flex items-center gap-3">
-          <AlertTriangle
-            className="h-6 w-6 shrink-0 text-[#92400E]"
-            aria-hidden="true"
-          />
-          <div>
-            <span className="inline-block rounded-sm bg-[#B45309] px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-white">
-              OUTDATED
-            </span>
-            <h2 className="mt-1 font-serif text-lg font-semibold text-[#92400E]">
-              {result.headline}
-            </h2>
-          </div>
+      <div className="flex items-center gap-3.5 rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-600 text-white">
+          <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div>
+          <span className="inline-block rounded-full bg-amber-700 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-white">
+            OUTDATED
+          </span>
+          <h2 className="mt-1 text-base font-bold text-amber-950">
+            {result.headline}
+          </h2>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[#FCA5A5] bg-[#FEF2F2] p-4">
-      <div className="flex items-center gap-3">
-        <ShieldX
-          className="h-6 w-6 shrink-0 text-[#991B1B]"
-          aria-hidden="true"
-        />
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50/80 p-4">
+      <div className="flex items-center gap-3.5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-600 text-white">
+          <ShieldX className="h-5 w-5" aria-hidden="true" />
+        </div>
         <div>
-          <span className="inline-block rounded-sm bg-[#991B1B] px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-white">
+          <span className="inline-block rounded-full bg-rose-700 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-white">
             UNVERIFIED RUMOR
           </span>
-          <h2 className="mt-1 font-serif text-lg font-semibold text-[#991B1B]">
+          <h2 className="mt-1 text-base font-bold text-rose-950">
             {result.headline}
           </h2>
         </div>
       </div>
-      <span className="inline-flex items-center gap-1 font-mono text-xs text-[#991B1B]">
-        <ShieldAlert className="h-4 w-4" aria-hidden="true" />
+      <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-800 ring-1 ring-rose-200">
+        <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
         Do Not Forward
       </span>
     </div>

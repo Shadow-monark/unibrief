@@ -1,14 +1,12 @@
 "use client";
 
 import {
-  BookOpenCheck,
   Calculator,
   CalendarClock,
-  CheckCircle2,
-  MessageSquareQuote,
+  GraduationCap,
+  MessageSquareText,
   ShieldAlert,
   ShieldCheck,
-  SlidersHorizontal,
 } from "lucide-react";
 import type { BranchOption, ResidenceFilter, StudentProfile } from "@/types/campus";
 
@@ -43,94 +41,82 @@ export function TopNav({
   engineStatus,
 }: TopNavProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[#CBD5E1] bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        {/* Top Row: Brand + Profile Filters + Role Switcher */}
-        <div className="flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
+    <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Top Row: Brand + Profile Pill + Role Switcher */}
+        <div className="flex flex-col gap-3 py-3.5 lg:flex-row lg:items-center lg:justify-between">
           {/* Brand */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-[#1E3A5F] bg-[#1E3A5F] text-white">
-                <BookOpenCheck className="h-5 w-5" aria-hidden="true" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0F172A] text-white shadow-xs">
+                <GraduationCap className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <span className="font-serif text-xl font-semibold tracking-tight text-[#0F172A]">
+                  <span className="text-lg font-bold tracking-tight text-zinc-900">
                     AskCampus
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-sm border border-[#86EFAC] bg-[#F0FDF4] px-2 py-0.5 font-mono text-xs font-medium text-[#166534] tabular-nums">
-                    <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    {verifiedNoticeCount} Verified
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/80 px-2.5 py-0.5 text-xs font-medium text-emerald-700 tabular-nums">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {verifiedNoticeCount} verified
                   </span>
                 </div>
-                <p className="text-xs text-[#475569]">
-                  Campus Knowledge, Deadline Radar &amp; Action OS
+                <p className="text-xs text-zinc-500">
+                  Campus Knowledge &amp; Deadline OS
                 </p>
               </div>
             </div>
 
-            {/* Mobile role switcher */}
             <div className="flex lg:hidden">
               <RoleSegmentedToggle role={role} onRoleChange={onRoleChange} />
             </div>
           </div>
 
-          {/* Student Profile Filter Bar + Desktop Role Switcher */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Floating Context Filter Pill + Role Toggle */}
+          <div className="flex flex-wrap items-center gap-2.5">
             <div
-              className="flex flex-wrap items-center gap-2 rounded-sm border border-[#CBD5E1] bg-[#F7F8FA] px-2.5 py-1.5"
+              className="flex flex-wrap items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50/90 p-1 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
               role="group"
               aria-label="Student profile context filters"
             >
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#334155]">
-                <SlidersHorizontal className="h-3.5 w-3.5 text-[#1E3A5F]" aria-hidden="true" />
-                Profile
-              </span>
+              <select
+                aria-label="Branch"
+                value={profile.branch}
+                onChange={(e) =>
+                  onProfileChange({
+                    ...profile,
+                    branch: e.target.value as BranchOption,
+                  })
+                }
+                className="cursor-pointer rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-800 ring-1 ring-zinc-200/80 transition hover:ring-zinc-300"
+              >
+                {BRANCHES.map((b) => (
+                  <option key={b} value={b}>
+                    {b === "All" ? "All Branches" : b}
+                  </option>
+                ))}
+              </select>
 
-              <label className="flex items-center gap-1.5 text-xs text-[#475569]">
-                <span className="sr-only">Branch</span>
-                <select
-                  aria-label="Branch"
-                  value={profile.branch}
-                  onChange={(e) =>
-                    onProfileChange({
-                      ...profile,
-                      branch: e.target.value as BranchOption,
-                    })
-                  }
-                  className="cursor-pointer rounded-sm border border-[#CBD5E1] bg-white px-2 py-1 text-xs font-medium text-[#0F172A]"
-                >
-                  {BRANCHES.map((b) => (
-                    <option key={b} value={b}>
-                      {b === "All" ? "Branch: All" : b}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex items-center gap-1.5 text-xs text-[#475569]">
-                <span className="sr-only">Semester</span>
-                <select
-                  aria-label="Semester"
-                  value={profile.semester}
-                  onChange={(e) =>
-                    onProfileChange({
-                      ...profile,
-                      semester: Number(e.target.value),
-                    })
-                  }
-                  className="cursor-pointer rounded-sm border border-[#CBD5E1] bg-white px-2 py-1 font-mono text-xs font-medium text-[#0F172A] tabular-nums"
-                >
-                  {SEMESTERS.map((sem) => (
-                    <option key={sem} value={sem}>
-                      Sem {sem}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <select
+                aria-label="Semester"
+                value={profile.semester}
+                onChange={(e) =>
+                  onProfileChange({
+                    ...profile,
+                    semester: Number(e.target.value),
+                  })
+                }
+                className="cursor-pointer rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-800 ring-1 ring-zinc-200/80 transition hover:ring-zinc-300 tabular-nums"
+              >
+                {SEMESTERS.map((sem) => (
+                  <option key={sem} value={sem}>
+                    Semester {sem}
+                  </option>
+                ))}
+              </select>
 
               <div
-                className="inline-flex rounded-sm border border-[#CBD5E1] bg-white p-0.5"
+                className="inline-flex rounded-full bg-zinc-200/60 p-0.5"
                 role="group"
                 aria-label="Residence filter"
               >
@@ -144,10 +130,10 @@ export function TopNav({
                         onProfileChange({ ...profile, residence: res })
                       }
                       aria-pressed={active}
-                      className={`cursor-pointer rounded-xs px-2 py-0.5 text-xs font-medium transition-colors duration-150 ${
+                      className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150 ${
                         active
-                          ? "bg-[#1E3A5F] text-white"
-                          : "text-[#475569] hover:text-[#0F172A]"
+                          ? "bg-white text-zinc-900 shadow-xs"
+                          : "text-zinc-600 hover:text-zinc-900"
                       }`}
                     >
                       {res}
@@ -157,11 +143,11 @@ export function TopNav({
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2.5">
               {engineStatus === "unconfigured" && (
                 <span
                   title="Configure GROQ_API_KEY in .env.local for live AI queries"
-                  className="inline-flex items-center gap-1 rounded-sm border border-[#FCD34D] bg-[#FFFBEB] px-2 py-1 font-mono text-[11px] font-medium text-[#92400E]"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800"
                 >
                   API Key Missing
                 </span>
@@ -171,11 +157,11 @@ export function TopNav({
           </div>
         </div>
 
-        {/* Module Navigation Tabs (Student OS) */}
+        {/* Sleek Pill Navigation Bar (Student OS) */}
         {role === "student" && (
           <nav
             aria-label="Student OS modules"
-            className="-mb-px flex items-center gap-1 overflow-x-auto border-t border-[#E2E8F0] pt-1"
+            className="flex items-center gap-1.5 overflow-x-auto pb-3 pt-1"
           >
             <NavTabButton
               active={activeTab === "radar"}
@@ -190,7 +176,7 @@ export function TopNav({
               active={activeTab === "ask"}
               onClick={() => onTabChange("ask")}
               icon={
-                <MessageSquareQuote className="h-4 w-4" aria-hidden="true" />
+                <MessageSquareText className="h-4 w-4" aria-hidden="true" />
               }
               label="AskCampus Q&A"
             />
@@ -222,7 +208,7 @@ function RoleSegmentedToggle({
 }) {
   return (
     <div
-      className="inline-flex rounded-sm border border-[#CBD5E1] bg-[#EFF2F6] p-0.5"
+      className="inline-flex rounded-full border border-zinc-200 bg-zinc-100/90 p-1"
       role="group"
       aria-label="Workspace role switcher"
     >
@@ -230,10 +216,10 @@ function RoleSegmentedToggle({
         type="button"
         onClick={() => onRoleChange("student")}
         aria-pressed={role === "student"}
-        className={`cursor-pointer rounded-xs px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+        className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
           role === "student"
-            ? "bg-white text-[#0F172A] shadow-2xs ring-1 ring-[#CBD5E1]"
-            : "text-[#475569] hover:text-[#0F172A]"
+            ? "bg-white text-zinc-900 shadow-xs"
+            : "text-zinc-600 hover:text-zinc-900"
         }`}
       >
         Student OS
@@ -242,14 +228,14 @@ function RoleSegmentedToggle({
         type="button"
         onClick={() => onRoleChange("admin")}
         aria-pressed={role === "admin"}
-        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xs px-3 py-1.5 text-xs font-semibold transition-colors duration-150 ${
+        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
           role === "admin"
-            ? "bg-[#1E3A5F] text-white"
-            : "text-[#475569] hover:text-[#0F172A]"
+            ? "bg-[#0F172A] text-white shadow-xs"
+            : "text-zinc-600 hover:text-zinc-900"
         }`}
       >
         <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-        Admin / CR Desk
+        Admin Desk
       </button>
     </div>
   );
@@ -273,20 +259,20 @@ function NavTabButton({
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
+      className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
         active
-          ? "border-[#1E3A5F] text-[#1E3A5F]"
-          : "border-transparent text-[#475569] hover:border-[#CBD5E1] hover:text-[#0F172A]"
+          ? "bg-[#0F172A] text-white shadow-xs"
+          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
       }`}
     >
       {icon}
       <span>{label}</span>
       {badge && (
         <span
-          className={`rounded-sm px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums ${
+          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
             active
-              ? "bg-[#1E3A5F] text-white"
-              : "bg-[#EFF2F6] text-[#334155]"
+              ? "bg-white/20 text-white"
+              : "bg-zinc-200/80 text-zinc-700"
           }`}
         >
           {badge}

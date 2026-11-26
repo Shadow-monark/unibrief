@@ -1,25 +1,29 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Newsreader } from "next/font/google";
+import {
+  Instrument_Serif,
+  JetBrains_Mono,
+  Plus_Jakarta_Sans,
+} from "next/font/google";
 import "./globals.css";
 
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-newsreader",
-  display: "swap",
-});
-
-const ibmPlexSans = IBM_Plex_Sans({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-plex-sans",
+  variable: "--font-jakarta",
   display: "swap",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  variable: "--font-plex-mono",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
@@ -37,9 +41,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${newsreader.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
+      className={`${plusJakarta.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-dvh bg-[#F7F8FA] text-[#0F172A] antialiased">
+      <body className="min-h-dvh bg-[#FAFAFA] text-[#111827] antialiased selection:bg-[#1E3A5F] selection:text-white">
         {children}
       </body>
     </html>

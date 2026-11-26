@@ -118,7 +118,7 @@ export function AskCampusApp({
           ),
         }));
         pushToast(
-          completed ? "Marked deadline as done." : "Reopened deadline.",
+          completed ? "Marked deadline as completed." : "Deadline reopened.",
           "success"
         );
       } catch (err) {
@@ -158,7 +158,7 @@ export function AskCampusApp({
   );
 
   return (
-    <div className="min-h-dvh bg-[#F7F8FA]">
+    <div className="min-h-dvh bg-[#FAFAFA] bg-[radial-gradient(ellipse_85%_35%_at_50%_-8%,rgba(30,58,95,0.06),transparent)]">
       <TopNav
         profile={profile}
         onProfileChange={setProfile}
@@ -171,7 +171,7 @@ export function AskCampusApp({
         engineStatus={engineStatus}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
         {role === "admin" ? (
           <AdminDesk
             notices={state.notices}
@@ -237,38 +237,38 @@ export function AskCampusApp({
         onToast={pushToast}
       />
 
-      {/* Accessible Live Toasts */}
+      {/* Sleek Floating Toasts */}
       <div
         aria-live="polite"
-        className="fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2 pointer-events-none"
+        className="pointer-events-none fixed right-5 bottom-5 z-50 flex w-full max-w-sm flex-col gap-2.5"
       >
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.tone === "error" ? "alert" : "status"}
-            className={`pointer-events-auto flex items-start gap-2.5 rounded-sm border p-3.5 text-xs shadow-sm ${
+            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 text-xs shadow-[0_8px_24px_rgba(15,23,42,0.1)] backdrop-blur-md ${
               toast.tone === "error"
-                ? "border-[#FCA5A5] bg-[#FEF2F2] text-[#991B1B]"
+                ? "border-red-200 bg-red-50/95 text-red-900"
                 : toast.tone === "success"
-                  ? "border-[#86EFAC] bg-[#F0FDF4] text-[#166534]"
-                  : "border-[#CBD5E1] bg-white text-[#0F172A]"
+                  ? "border-emerald-200 bg-emerald-50/95 text-emerald-900"
+                  : "border-zinc-200 bg-white/95 text-zinc-900"
             }`}
           >
             {toast.tone === "error" ? (
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
             ) : toast.tone === "success" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
             ) : (
-              <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" aria-hidden="true" />
             )}
-            <p className="flex-1 leading-relaxed font-medium">{toast.message}</p>
+            <p className="flex-1 font-medium leading-relaxed">{toast.message}</p>
             <button
               type="button"
               onClick={() =>
                 setToasts((prev) => prev.filter((t) => t.id !== toast.id))
               }
               aria-label="Dismiss notification"
-              className="cursor-pointer opacity-70 hover:opacity-100"
+              className="cursor-pointer rounded-full p-0.5 opacity-60 transition hover:bg-black/5 hover:opacity-100"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
