@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
-import {
-  Instrument_Serif,
-  JetBrains_Mono,
-  Plus_Jakarta_Sans,
-} from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-jakarta",
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-instrument-serif",
   display: "swap",
 });
 
@@ -28,9 +17,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AskCampus — Campus Knowledge, Deadline Radar & Action OS",
+  title: "AskCampus — Calm Campus Knowledge & Deadline OS",
   description:
-    "Verified university circular intelligence, anti-fine deadline radar, WhatsApp rumor fact-checker, and dynamic attendance rule simulator.",
+    "Calm AI university circular intelligence, anti-fine deadline radar, rumor checker, and attendance simulator.",
 };
 
 export default function RootLayout({
@@ -41,9 +30,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakarta.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-dvh bg-[#FAFAFA] text-[#111827] antialiased selection:bg-[#1E3A5F] selection:text-white">
+      <body className="min-h-dvh bg-[#EEF4FA] text-[#0F172A] antialiased selection:bg-[#1E3A5F] selection:text-white">
         {children}
       </body>
     </html>

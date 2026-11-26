@@ -2,7 +2,6 @@
 
 import { useRef, useState, useSyncExternalStore } from "react";
 import {
-  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   FilePlus2,
@@ -12,7 +11,6 @@ import {
   Trash2,
   Upload,
   Webhook,
-  Workflow,
   XCircle,
 } from "lucide-react";
 import type {
@@ -227,294 +225,240 @@ export function AdminDesk({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
-          Admin / CR Ingestion Desk
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="px-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+          Admin Ingestion
         </h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Drop college circulars, detect same-topic revisions automatically,
-          supersede outdated deadlines, and broadcast alerts.
+        <p className="mt-1 text-sm text-slate-600">
+          Upload circulars or paste revisions to auto-supersede old notices.
         </p>
       </div>
 
-      {/* Ingestion Workbench + Pipeline Stepper */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Uploader (7 cols) */}
-        <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] lg:col-span-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div
-              className="inline-flex rounded-full border border-zinc-200 bg-zinc-100/90 p-1"
-              role="tablist"
-              aria-label="Circular ingestion method"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={ingestMode === "files"}
-                onClick={() => setIngestMode("files")}
-                className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition ${
-                  ingestMode === "files"
-                    ? "bg-white text-zinc-900 shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                Upload Files
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={ingestMode === "paste"}
-                onClick={() => setIngestMode("paste")}
-                className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition ${
-                  ingestMode === "paste"
-                    ? "bg-white text-zinc-900 shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-900"
-                }`}
-              >
-                Quick Paste Circular Text
-              </button>
-            </div>
-
-            {ingestMode === "paste" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setPastedText(SAMPLE_REVISED_CIRCULAR);
-                  setTitleHint("FEE_2026_059_Extended");
-                }}
-                className="cursor-pointer rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-semibold text-[#1E3A5F] transition hover:border-zinc-400 hover:bg-white"
-              >
-                Load Sample Revision
-              </button>
-            )}
-          </div>
-
-          {ingestMode === "files" ? (
-            <div className="space-y-3">
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  addFiles(e.dataTransfer.files);
-                }}
-                className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-                  isDragging
-                    ? "border-[#1E3A5F] bg-slate-50"
-                    : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300"
-                }`}
-              >
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-xs ring-1 ring-zinc-200">
-                  <Upload className="h-5 w-5 text-[#1E3A5F]" aria-hidden="true" />
-                </div>
-                <p className="mt-3 text-sm font-semibold text-zinc-900">
-                  Drop official circulars here, or browse files
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Supports PDF, DOCX, TXT, PNG, JPG, WEBP (batch multi-file)
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    addFiles(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs transition hover:border-zinc-900 hover:bg-zinc-900 hover:text-white"
-                >
-                  <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  Choose Files
-                </button>
-              </div>
-
-              {queuedFiles.length > 0 && (
-                <ul className="space-y-1.5">
-                  {queuedFiles.map((file, idx) => (
-                    <li
-                      key={`${file.name}-${idx}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2 text-xs"
-                    >
-                      <span className="inline-flex items-center gap-2 font-mono text-zinc-800">
-                        <FileText
-                          className="h-3.5 w-3.5 text-[#1E3A5F]"
-                          aria-hidden="true"
-                        />
-                        {file.name}{" "}
-                        <span className="text-zinc-400">
-                          ({Math.max(1, Math.round(file.size / 1024))} KB)
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${file.name}`}
-                        onClick={() =>
-                          setQueuedFiles((prev) =>
-                            prev.filter((_, i) => i !== idx)
-                          )
-                        }
-                        className="cursor-pointer rounded-full p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <label className="block text-xs font-medium text-zinc-700">
-                Reference Label (Optional)
-                <input
-                  type="text"
-                  value={titleHint}
-                  onChange={(e) => setTitleHint(e.target.value)}
-                  placeholder="e.g. EXAM_2026_110_Notice"
-                  className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-400 focus:bg-white focus:outline-none"
-                />
-              </label>
-              <label className="block text-xs font-medium text-zinc-700">
-                Official Circular Text
-                <textarea
-                  rows={6}
-                  value={pastedText}
-                  onChange={(e) => setPastedText(e.target.value)}
-                  placeholder="Paste full circular text, Hindi-English notice, or revised deadline..."
-                  className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50/70 p-3.5 font-mono text-xs leading-relaxed text-zinc-900 focus:border-zinc-400 focus:bg-white focus:outline-none"
-                />
-              </label>
-            </div>
-          )}
-
-          {/* Optional Auto-Alert Webhook */}
-          <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-4">
-            <label className="block text-xs font-semibold text-zinc-800">
-              <span className="inline-flex items-center gap-1.5">
-                <Webhook className="h-3.5 w-3.5 text-[#1E3A5F]" aria-hidden="true" />
-                Auto-Alert Webhook URL (Optional — n8n / Discord / Telegram)
-              </span>
-              <input
-                type="url"
-                value={webhookUrl}
-                onChange={(e) => updateWebhookUrl(e.target.value)}
-                placeholder="https://discord.com/api/webhooks/... or n8n webhook URL"
-                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 font-mono text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end">
+      {/* Frosted Upload Studio */}
+      <section className="glass-panel space-y-5 rounded-3xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="inline-flex rounded-full bg-slate-900/6 p-1"
+            role="tablist"
+            aria-label="Circular ingestion method"
+          >
             <button
               type="button"
-              disabled={isIngesting}
-              onClick={runIngestion}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+              role="tab"
+              aria-selected={ingestMode === "files"}
+              onClick={() => setIngestMode("files")}
+              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition ${
+                ingestMode === "files"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
-              {isIngesting ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Upload className="h-4 w-4" aria-hidden="true" />
-              )}
-              <span>
-                {isIngesting
-                  ? "Running Pipeline..."
-                  : "Ingest & Resolve Conflicts"}
-              </span>
+              Upload Files
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={ingestMode === "paste"}
+              onClick={() => setIngestMode("paste")}
+              className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition ${
+                ingestMode === "paste"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Paste Text
             </button>
           </div>
-        </section>
 
-        {/* Right: Visual Pipeline Stepper (5 cols) */}
-        <section className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_1px_3px_rgba(15,23,42,0.04)] lg:col-span-5">
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-            <h2 className="inline-flex items-center gap-2 text-base font-bold text-zinc-900">
-              <Workflow className="h-4 w-4 text-[#1E3A5F]" aria-hidden="true" />
-              Pipeline Execution Log
-            </h2>
-            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600">
-              4-Loop Backend
-            </span>
-          </div>
+          {ingestMode === "paste" && (
+            <button
+              type="button"
+              onClick={() => {
+                setPastedText(SAMPLE_REVISED_CIRCULAR);
+                setTitleHint("FEE_2026_059_Extended");
+              }}
+              className="cursor-pointer rounded-full bg-white/80 px-3.5 py-1 text-xs font-semibold text-[#1E3A5F] ring-1 ring-slate-200/80 transition hover:bg-white"
+            >
+              Load Sample Revision
+            </button>
+          )}
+        </div>
 
-          <div className="mt-4 flex-1 space-y-3 overflow-y-auto max-h-[400px]">
-            {pipelineLogs.length === 0 ? (
-              <div className="rounded-xl bg-zinc-50 p-4 text-xs leading-relaxed text-zinc-600">
-                <p className="font-semibold text-zinc-900">
-                  Ready to run server-side loops:
-                </p>
-                <ol className="mt-2.5 list-decimal space-y-1.5 pl-4 text-zinc-600">
-                  <li>Structured JSON Extraction (3x retry backoff)</li>
-                  <li>Topic Conflict Detection</li>
-                  <li>Auto-Superseding Old Circulars &amp; Deadlines</li>
-                  <li>Deadline Creation &amp; Webhook/In-App Alerts</li>
-                </ol>
-              </div>
-            ) : (
-              pipelineLogs.map((log, idx) => (
-                <div
-                  key={`${log.step}-${idx}`}
-                  className="flex items-start gap-3 rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-3.5 text-xs"
-                >
-                  {log.status === "completed" ? (
-                    <CheckCircle2
-                      className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
-                      aria-hidden="true"
-                    />
-                  ) : log.status === "failed" ? (
-                    <XCircle
-                      className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <SkipForward
-                      className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-zinc-900">
-                        {log.step}
-                      </span>
-                      <span className="rounded-full bg-white px-2 py-0.5 font-mono text-[10px] font-medium text-zinc-500 uppercase ring-1 ring-zinc-200">
-                        {log.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-zinc-600">{log.detail}</p>
-                  </div>
-                </div>
-              ))
+        {ingestMode === "files" ? (
+          <div className="space-y-3">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                addFiles(e.dataTransfer.files);
+              }}
+              className={`rounded-2xl border-2 border-dashed p-8 text-center transition ${
+                isDragging
+                  ? "border-slate-900 bg-white/80"
+                  : "border-slate-300/70 bg-white/40 hover:bg-white/60"
+              }`}
+            >
+              <Upload
+                className="mx-auto h-7 w-7 text-slate-600"
+                aria-hidden="true"
+              />
+              <p className="mt-2.5 text-sm font-semibold text-slate-800">
+                Drop PDF, DOCX, TXT, or notice photos here
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-3.5 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs ring-1 ring-slate-200/80 transition hover:bg-slate-900 hover:text-white"
+              >
+                <FilePlus2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Choose Files
+              </button>
+            </div>
+
+            {queuedFiles.length > 0 && (
+              <ul className="space-y-1.5">
+                {queuedFiles.map((file, idx) => (
+                  <li
+                    key={`${file.name}-${idx}`}
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-white/75 px-4 py-2 text-xs"
+                  >
+                    <span className="inline-flex items-center gap-2 font-mono text-slate-800">
+                      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
+                      {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() =>
+                        setQueuedFiles((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        )
+                      }
+                      className="cursor-pointer rounded-full p-1 text-slate-400 hover:text-rose-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-        </section>
-      </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={titleHint}
+              onChange={(e) => setTitleHint(e.target.value)}
+              aria-label="Optional reference label"
+              placeholder="Optional reference label (e.g. EXAM_2026_110)"
+              className="w-full rounded-2xl bg-white/80 px-4 py-2.5 font-mono text-xs text-slate-900 placeholder:text-slate-400 ring-1 ring-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
+            <textarea
+              rows={5}
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              aria-label="Official circular text"
+              placeholder="Paste full circular text here..."
+              className="w-full rounded-2xl bg-white/80 p-4 font-mono text-xs leading-relaxed text-slate-900 placeholder:text-slate-400 ring-1 ring-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-300"
+            />
+          </div>
+        )}
 
-      {/* Circulars Audit Archive */}
-      <section className="rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-bold tracking-tight text-zinc-900">
-              Official Circulars Archive
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Audit trail of active and superseded campus circulars.
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 items-center gap-2 rounded-full bg-white/75 px-3.5 py-2 ring-1 ring-white">
+            <Webhook
+              className="h-3.5 w-3.5 shrink-0 text-slate-500"
+              aria-hidden="true"
+            />
+            <input
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => updateWebhookUrl(e.target.value)}
+              aria-label="Auto-alert webhook URL"
+              placeholder="Optional webhook URL (n8n / Discord / Telegram)"
+              className="w-full bg-transparent font-mono text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none"
+            />
           </div>
 
+          <button
+            type="button"
+            disabled={isIngesting}
+            onClick={runIngestion}
+            className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isIngesting ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Upload className="h-4 w-4" aria-hidden="true" />
+            )}
+            <span>
+              {isIngesting ? "Ingesting..." : "Ingest & Resolve Conflicts"}
+            </span>
+          </button>
+        </div>
+
+        {/* Pipeline Execution Steps (shown cleanly when active) */}
+        {pipelineLogs.length > 0 && (
+          <div className="space-y-2 border-t border-white/70 pt-4">
+            {pipelineLogs.map((log, idx) => (
+              <div
+                key={`${log.step}-${idx}`}
+                className="flex items-start gap-2.5 rounded-2xl bg-white/70 px-4 py-2.5 text-xs"
+              >
+                {log.status === "completed" ? (
+                  <CheckCircle2
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600"
+                    aria-hidden="true"
+                  />
+                ) : log.status === "failed" ? (
+                  <XCircle
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-600"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <SkipForward
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400"
+                    aria-hidden="true"
+                  />
+                )}
+                <div>
+                  <span className="font-semibold text-slate-900">
+                    {log.step}:{" "}
+                  </span>
+                  <span className="text-slate-600">{log.detail}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Circulars Archive */}
+      <section className="glass-panel rounded-3xl p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+          <h2 className="text-base font-semibold text-slate-900">
+            Circulars Archive ({filteredArchive.length})
+          </h2>
+
           <div
-            className="inline-flex rounded-full border border-zinc-200 bg-zinc-100/90 p-1"
+            className="inline-flex rounded-full bg-slate-900/6 p-1"
             role="group"
             aria-label="Filter circular archive"
           >
@@ -526,21 +470,17 @@ export function AdminDesk({
                 aria-pressed={archiveFilter === status}
                 className={`cursor-pointer rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
                   archiveFilter === status
-                    ? "bg-white text-zinc-900 shadow-xs"
-                    : "text-zinc-600 hover:text-zinc-900"
+                    ? "bg-white text-slate-900 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                {status} (
-                {status === "all"
-                  ? notices.length
-                  : notices.filter((n) => n.status === status).length}
-                )
+                {status}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="space-y-2.5 p-4 sm:p-5">
+        <div className="space-y-2.5">
           {filteredArchive.map((notice) => {
             const replacement = notice.superseded_by_id
               ? notices.find((n) => n.id === notice.superseded_by_id) ?? null
@@ -551,32 +491,25 @@ export function AdminDesk({
               <div
                 id={`archive-row-${notice.id}`}
                 key={notice.id}
-                className={`flex flex-col gap-3 rounded-xl border p-4 transition sm:flex-row sm:items-center sm:justify-between ${
-                  isHighlighted
-                    ? "border-[#1E3A5F] bg-slate-50"
-                    : "border-zinc-200/80 bg-zinc-50/40 hover:border-zinc-300 hover:bg-white"
+                className={`glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between ${
+                  isHighlighted ? "ring-2 ring-slate-900" : ""
                 }`}
               >
-                <div className="min-w-0 space-y-1.5">
+                <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-semibold text-[#1E3A5F]">
                       {notice.circular_no}
                     </span>
-                    {notice.status === "active" ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
-                        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
-                        <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-                        Superseded
-                      </span>
-                    )}
-                    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 font-mono text-[11px] text-zinc-600">
-                      {notice.topic_tag}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        notice.status === "active"
+                          ? "bg-emerald-500/12 text-emerald-800"
+                          : "bg-amber-500/15 text-amber-900"
+                      }`}
+                    >
+                      {notice.status === "active" ? "Active" : "Superseded"}
                     </span>
-                    <span className="font-mono text-xs text-zinc-400 tabular-nums">
+                    <span className="font-mono text-[11px] text-slate-400 tabular-nums">
                       {notice.effective_date}
                     </span>
                   </div>
@@ -584,13 +517,12 @@ export function AdminDesk({
                   <h3
                     className={`text-sm font-semibold ${
                       notice.status === "superseded"
-                        ? "text-zinc-500 line-through"
-                        : "text-zinc-900"
+                        ? "text-slate-500 line-through"
+                        : "text-slate-900"
                     }`}
                   >
                     {notice.title}
                   </h3>
-                  <p className="text-xs text-zinc-600">{notice.summary}</p>
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -598,7 +530,7 @@ export function AdminDesk({
                     <button
                       type="button"
                       onClick={() => jumpToNotice(replacement.id)}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 font-mono text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-500/15 px-3 py-1 font-mono text-xs font-semibold text-amber-900 transition hover:bg-amber-500/25"
                     >
                       Replaced by {replacement.circular_no}
                       <ArrowRight className="h-3 w-3" aria-hidden="true" />
@@ -608,9 +540,9 @@ export function AdminDesk({
                   <button
                     type="button"
                     onClick={() => onInspectCircular(notice.id)}
-                    className="cursor-pointer rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-800 transition hover:border-zinc-900"
+                    className="cursor-pointer rounded-full bg-white/85 px-3.5 py-1.5 text-xs font-semibold text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-slate-900 hover:text-white"
                   >
-                    Inspect Proof
+                    Inspect
                   </button>
                 </div>
               </div>

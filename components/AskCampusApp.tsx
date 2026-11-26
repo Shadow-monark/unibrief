@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { AdminDesk } from "@/components/AdminDesk";
 import { AskCampusQA } from "@/components/AskCampusQA";
+import { CalmOrbScene } from "@/components/CalmOrbScene";
 import { CircularPreviewModal } from "@/components/CircularPreviewModal";
 import { DeadlineRadar } from "@/components/DeadlineRadar";
 import { DraftMailModal } from "@/components/DraftMailModal";
@@ -158,71 +159,87 @@ export function AskCampusApp({
   );
 
   return (
-    <div className="min-h-dvh bg-[#FAFAFA] bg-[radial-gradient(ellipse_85%_35%_at_50%_-8%,rgba(30,58,95,0.06),transparent)]">
-      <TopNav
-        profile={profile}
-        onProfileChange={setProfile}
-        role={role}
-        onRoleChange={setRole}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        verifiedNoticeCount={verifiedNoticeCount}
-        pendingDeadlineCount={pendingDeadlineCount}
-        engineStatus={engineStatus}
-      />
+    <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-[#EEF4FA] via-[#F4F8FB] to-[#EAF4F2]">
+      {/* Serene Pastel Mist Glows */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      >
+        <div className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-sky-200/45 blur-3xl" />
+        <div className="absolute top-1/4 -right-20 h-[480px] w-[480px] rounded-full bg-teal-100/55 blur-3xl" />
+        <div className="absolute -bottom-32 left-1/3 h-[380px] w-[380px] rounded-full bg-blue-100/45 blur-3xl" />
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-        {role === "admin" ? (
-          <AdminDesk
-            notices={state.notices}
-            onIngestComplete={refreshState}
-            onInspectCircular={(id) => setInspectedNoticeId(id)}
-            onToast={pushToast}
-          />
-        ) : (
-          <>
-            {activeTab === "radar" && (
-              <DeadlineRadar
-                deadlines={state.deadlines}
-                notices={state.notices}
-                alertLogs={state.alert_logs}
-                profile={profile}
-                togglingId={togglingId}
-                onToggleDeadline={handleToggleDeadline}
-                onInspectCircular={(id) => setInspectedNoticeId(id)}
-              />
-            )}
+      {/* Interactive 3D Frosted Glass Sculpture */}
+      <CalmOrbScene />
 
-            {activeTab === "ask" && (
-              <AskCampusQA
-                notices={state.notices}
-                profile={profile}
-                onDraftEmail={(email) => setDraftEmail(email)}
-                onToast={pushToast}
-              />
-            )}
+      <div className="relative z-10 flex min-h-dvh flex-col">
+        <TopNav
+          profile={profile}
+          onProfileChange={setProfile}
+          role={role}
+          onRoleChange={setRole}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          verifiedNoticeCount={verifiedNoticeCount}
+          pendingDeadlineCount={pendingDeadlineCount}
+          engineStatus={engineStatus}
+        />
 
-            {activeTab === "rumor" && (
-              <RumorBuster
-                notices={state.notices}
-                onInspectCircular={(id) => setInspectedNoticeId(id)}
-                onToast={pushToast}
-              />
-            )}
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+          {role === "admin" ? (
+            <AdminDesk
+              notices={state.notices}
+              onIngestComplete={refreshState}
+              onInspectCircular={(id) => setInspectedNoticeId(id)}
+              onToast={pushToast}
+            />
+          ) : (
+            <>
+              {activeTab === "radar" && (
+                <DeadlineRadar
+                  deadlines={state.deadlines}
+                  notices={state.notices}
+                  alertLogs={state.alert_logs}
+                  profile={profile}
+                  togglingId={togglingId}
+                  onToggleDeadline={handleToggleDeadline}
+                  onInspectCircular={(id) => setInspectedNoticeId(id)}
+                />
+              )}
 
-            {activeTab === "simulator" && (
-              <RuleSimulator
-                notices={state.notices}
-                profile={profile}
-                onInspectCircular={(id) => setInspectedNoticeId(id)}
-                onDraftEmail={(email) => setDraftEmail(email)}
-              />
-            )}
-          </>
-        )}
-      </main>
+              {activeTab === "ask" && (
+                <AskCampusQA
+                  notices={state.notices}
+                  profile={profile}
+                  onInspectCircular={(id) => setInspectedNoticeId(id)}
+                  onDraftEmail={(email) => setDraftEmail(email)}
+                  onToast={pushToast}
+                />
+              )}
 
-      {/* Modals */}
+              {activeTab === "rumor" && (
+                <RumorBuster
+                  notices={state.notices}
+                  onInspectCircular={(id) => setInspectedNoticeId(id)}
+                  onToast={pushToast}
+                />
+              )}
+
+              {activeTab === "simulator" && (
+                <RuleSimulator
+                  notices={state.notices}
+                  profile={profile}
+                  onInspectCircular={(id) => setInspectedNoticeId(id)}
+                  onDraftEmail={(email) => setDraftEmail(email)}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* Proof & Draft Modals */}
       <CircularPreviewModal
         notice={inspectedNotice}
         allNotices={state.notices}
@@ -237,7 +254,7 @@ export function AskCampusApp({
         onToast={pushToast}
       />
 
-      {/* Sleek Floating Toasts */}
+      {/* Frosted Toasts */}
       <div
         aria-live="polite"
         className="pointer-events-none fixed right-5 bottom-5 z-50 flex w-full max-w-sm flex-col gap-2.5"
@@ -246,20 +263,29 @@ export function AskCampusApp({
           <div
             key={toast.id}
             role={toast.tone === "error" ? "alert" : "status"}
-            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 text-xs shadow-[0_8px_24px_rgba(15,23,42,0.1)] backdrop-blur-md ${
+            className={`glass-panel pointer-events-auto flex items-start gap-3 rounded-2xl p-4 text-xs shadow-lg ${
               toast.tone === "error"
-                ? "border-red-200 bg-red-50/95 text-red-900"
+                ? "border-rose-200/90 bg-rose-50/85 text-rose-900"
                 : toast.tone === "success"
-                  ? "border-emerald-200 bg-emerald-50/95 text-emerald-900"
-                  : "border-zinc-200 bg-white/95 text-zinc-900"
+                  ? "border-emerald-200/90 bg-emerald-50/85 text-emerald-900"
+                  : "text-slate-900"
             }`}
           >
             {toast.tone === "error" ? (
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" aria-hidden="true" />
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
+                aria-hidden="true"
+              />
             ) : toast.tone === "success" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
+                aria-hidden="true"
+              />
             ) : (
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-600" aria-hidden="true" />
+              <Info
+                className="mt-0.5 h-4 w-4 shrink-0 text-slate-600"
+                aria-hidden="true"
+              />
             )}
             <p className="flex-1 font-medium leading-relaxed">{toast.message}</p>
             <button

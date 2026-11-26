@@ -1,21 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg-canvas: #fafafa;
-  --bg-surface: #ffffff;
-  --bg-subtle: #f4f4f5;
-  --ink-primary: #111827;
-  --ink-secondary: #3f3f46;
-  --ink-muted: #52525b;
-  --border-hairline: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --bg-canvas: #eef4fa;
+  --ink-primary: #0f172a;
+  --ink-muted: #475569;
   --brand-accent: #1e3a5f;
 }
 
 @theme inline {
   --font-sans: var(--font-jakarta), system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-jakarta), system-ui, sans-serif;
-  --font-display: var(--font-instrument-serif), Georgia, serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -24,7 +17,7 @@ body {
   background-color: var(--bg-canvas);
   color: var(--ink-primary);
   font-family: var(--font-sans);
-  scroll-padding-top: 8rem;
+  scroll-padding-top: 6rem;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -32,13 +25,42 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Smooth custom range slider */
+/* Frosted glassmorphism surfaces */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 10px 36px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Calm range slider */
 input[type="range"].campus-slider {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
   border-radius: 999px;
-  background: #e4e4e7;
+  background: rgba(15, 23, 42, 0.1);
 }
 
 input[type="range"].campus-slider::-webkit-slider-thumb {
@@ -49,7 +71,7 @@ input[type="range"].campus-slider::-webkit-slider-thumb {
   border-radius: 999px;
   background: #0f172a;
   border: 2px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
   cursor: pointer;
   transition: transform 150ms ease;
 }

@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   Calculator,
   CalendarClock,
-  GraduationCap,
+  ChevronDown,
   MessageSquareText,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
 import type { BranchOption, ResidenceFilter, StudentProfile } from "@/types/campus";
 
@@ -40,134 +43,61 @@ export function TopNav({
   pendingDeadlineCount,
   engineStatus,
 }: TopNavProps) {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
+        setProfileOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [profileOpen]);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/85 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Top Row: Brand + Profile Pill + Role Switcher */}
-        <div className="flex flex-col gap-3 py-3.5 lg:flex-row lg:items-center lg:justify-between">
-          {/* Brand */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0F172A] text-white shadow-xs">
-                <GraduationCap className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-lg font-bold tracking-tight text-zinc-900">
-                    AskCampus
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/80 px-2.5 py-0.5 text-xs font-medium text-emerald-700 tabular-nums">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {verifiedNoticeCount} verified
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-500">
-                  Campus Knowledge &amp; Deadline OS
-                </p>
-              </div>
-            </div>
-
-            <div className="flex lg:hidden">
-              <RoleSegmentedToggle role={role} onRoleChange={onRoleChange} />
-            </div>
+    <header className="sticky top-0 z-30 px-4 pt-4 sm:px-6">
+      <div className="glass-panel mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-full px-4 py-2.5 sm:px-5">
+        {/* Brand */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-white shadow-xs">
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
           </div>
-
-          {/* Floating Context Filter Pill + Role Toggle */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div
-              className="flex flex-wrap items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50/90 p-1 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
-              role="group"
-              aria-label="Student profile context filters"
-            >
-              <select
-                aria-label="Branch"
-                value={profile.branch}
-                onChange={(e) =>
-                  onProfileChange({
-                    ...profile,
-                    branch: e.target.value as BranchOption,
-                  })
-                }
-                className="cursor-pointer rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-800 ring-1 ring-zinc-200/80 transition hover:ring-zinc-300"
-              >
-                {BRANCHES.map((b) => (
-                  <option key={b} value={b}>
-                    {b === "All" ? "All Branches" : b}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                aria-label="Semester"
-                value={profile.semester}
-                onChange={(e) =>
-                  onProfileChange({
-                    ...profile,
-                    semester: Number(e.target.value),
-                  })
-                }
-                className="cursor-pointer rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-800 ring-1 ring-zinc-200/80 transition hover:ring-zinc-300 tabular-nums"
-              >
-                {SEMESTERS.map((sem) => (
-                  <option key={sem} value={sem}>
-                    Semester {sem}
-                  </option>
-                ))}
-              </select>
-
-              <div
-                className="inline-flex rounded-full bg-zinc-200/60 p-0.5"
-                role="group"
-                aria-label="Residence filter"
-              >
-                {RESIDENCES.map((res) => {
-                  const active = profile.residence === res;
-                  return (
-                    <button
-                      key={res}
-                      type="button"
-                      onClick={() =>
-                        onProfileChange({ ...profile, residence: res })
-                      }
-                      aria-pressed={active}
-                      className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition-all duration-150 ${
-                        active
-                          ? "bg-white text-zinc-900 shadow-xs"
-                          : "text-zinc-600 hover:text-zinc-900"
-                      }`}
-                    >
-                      {res}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-2.5">
-              {engineStatus === "unconfigured" && (
-                <span
-                  title="Configure GROQ_API_KEY in .env.local for live AI queries"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800"
-                >
-                  API Key Missing
-                </span>
-              )}
-              <RoleSegmentedToggle role={role} onRoleChange={onRoleChange} />
-            </div>
-          </div>
+          <span className="text-base font-bold tracking-tight text-slate-900">
+            AskCampus
+          </span>
+          <span
+            title={`${verifiedNoticeCount} verified official circulars`}
+            className="hidden items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 sm:inline-flex"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {verifiedNoticeCount}
+          </span>
         </div>
 
-        {/* Sleek Pill Navigation Bar (Student OS) */}
-        {role === "student" && (
+        {/* Center Calm Navigation */}
+        {role === "student" ? (
           <nav
             aria-label="Student OS modules"
-            className="flex items-center gap-1.5 overflow-x-auto pb-3 pt-1"
+            className="order-3 flex w-full items-center justify-center gap-1 overflow-x-auto pt-1 md:order-2 md:w-auto md:pt-0"
           >
             <NavTabButton
               active={activeTab === "radar"}
               onClick={() => onTabChange("radar")}
-              icon={<CalendarClock className="h-4 w-4" aria-hidden="true" />}
-              label="Deadline Radar"
+              icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+              label="Radar"
               badge={
                 pendingDeadlineCount > 0 ? String(pendingDeadlineCount) : undefined
               }
@@ -176,68 +106,166 @@ export function TopNav({
               active={activeTab === "ask"}
               onClick={() => onTabChange("ask")}
               icon={
-                <MessageSquareText className="h-4 w-4" aria-hidden="true" />
+                <MessageSquareText className="h-3.5 w-3.5" aria-hidden="true" />
               }
-              label="AskCampus Q&A"
+              label="Ask AI"
             />
             <NavTabButton
               active={activeTab === "rumor"}
               onClick={() => onTabChange("rumor")}
-              icon={<ShieldAlert className="h-4 w-4" aria-hidden="true" />}
-              label="Rumor Buster"
+              icon={<ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />}
+              label="Rumor Check"
             />
             <NavTabButton
               active={activeTab === "simulator"}
               onClick={() => onTabChange("simulator")}
-              icon={<Calculator className="h-4 w-4" aria-hidden="true" />}
-              label="Rule Simulator"
+              icon={<Calculator className="h-3.5 w-3.5" aria-hidden="true" />}
+              label="Simulator"
             />
           </nav>
+        ) : (
+          <div className="order-3 text-xs font-semibold text-slate-600 md:order-2">
+            Admin / CR Ingestion Workspace
+          </div>
         )}
+
+        {/* Right Controls: Compact Profile Popover + Admin Switch */}
+        <div className="order-2 flex items-center gap-2 md:order-3">
+          {engineStatus === "unconfigured" && (
+            <span
+              title="Add GROQ_API_KEY in .env.local"
+              className="rounded-full bg-amber-100/90 px-2.5 py-1 text-[11px] font-semibold text-amber-900"
+            >
+              No Key
+            </span>
+          )}
+
+          {/* Profile Popover Trigger */}
+          <div className="relative" ref={popoverRef}>
+            <button
+              type="button"
+              onClick={() => setProfileOpen((v) => !v)}
+              aria-expanded={profileOpen}
+              aria-haspopup="dialog"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-white/80 bg-white/75 px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs transition hover:bg-white"
+            >
+              <SlidersHorizontal
+                className="h-3.5 w-3.5 text-slate-500"
+                aria-hidden="true"
+              />
+              <span className="tabular-nums">
+                {profile.branch} · S{profile.semester}
+              </span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-slate-400 transition-transform ${
+                  profileOpen ? "rotate-180" : ""
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {profileOpen && (
+              <div
+                role="dialog"
+                aria-label="Student profile filters"
+                className="glass-panel absolute right-0 mt-2.5 w-72 rounded-3xl p-4 shadow-xl"
+              >
+                <div className="space-y-3.5">
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Branch
+                    </span>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {BRANCHES.map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          onClick={() =>
+                            onProfileChange({ ...profile, branch: b })
+                          }
+                          className={`cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                            profile.branch === b
+                              ? "bg-slate-900 text-white"
+                              : "bg-white/70 text-slate-700 hover:bg-white"
+                          }`}
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Semester
+                    </span>
+                    <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+                      {SEMESTERS.map((sem) => (
+                        <button
+                          key={sem}
+                          type="button"
+                          onClick={() =>
+                            onProfileChange({ ...profile, semester: sem })
+                          }
+                          className={`cursor-pointer rounded-full py-1 text-xs font-medium tabular-nums transition ${
+                            profile.semester === sem
+                              ? "bg-slate-900 text-white"
+                              : "bg-white/70 text-slate-700 hover:bg-white"
+                          }`}
+                        >
+                          Sem {sem}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Residence
+                    </span>
+                    <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                      {RESIDENCES.map((res) => (
+                        <button
+                          key={res}
+                          type="button"
+                          onClick={() =>
+                            onProfileChange({ ...profile, residence: res })
+                          }
+                          className={`cursor-pointer rounded-full py-1.5 text-xs font-medium transition ${
+                            profile.residence === res
+                              ? "bg-slate-900 text-white"
+                              : "bg-white/70 text-slate-700 hover:bg-white"
+                          }`}
+                        >
+                          {res}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Role Toggle */}
+          <button
+            type="button"
+            onClick={() =>
+              onRoleChange(role === "student" ? "admin" : "student")
+            }
+            aria-pressed={role === "admin"}
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              role === "admin"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "border border-white/80 bg-white/70 text-slate-700 hover:bg-white"
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>{role === "admin" ? "Exit Admin" : "Admin"}</span>
+          </button>
+        </div>
       </div>
     </header>
-  );
-}
-
-function RoleSegmentedToggle({
-  role,
-  onRoleChange,
-}: {
-  role: WorkspaceRole;
-  onRoleChange: (role: WorkspaceRole) => void;
-}) {
-  return (
-    <div
-      className="inline-flex rounded-full border border-zinc-200 bg-zinc-100/90 p-1"
-      role="group"
-      aria-label="Workspace role switcher"
-    >
-      <button
-        type="button"
-        onClick={() => onRoleChange("student")}
-        aria-pressed={role === "student"}
-        className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
-          role === "student"
-            ? "bg-white text-zinc-900 shadow-xs"
-            : "text-zinc-600 hover:text-zinc-900"
-        }`}
-      >
-        Student OS
-      </button>
-      <button
-        type="button"
-        onClick={() => onRoleChange("admin")}
-        aria-pressed={role === "admin"}
-        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold transition-all duration-150 ${
-          role === "admin"
-            ? "bg-[#0F172A] text-white shadow-xs"
-            : "text-zinc-600 hover:text-zinc-900"
-        }`}
-      >
-        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-        Admin Desk
-      </button>
-    </div>
   );
 }
 
@@ -259,20 +287,18 @@ function NavTabButton({
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
+      className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
         active
-          ? "bg-[#0F172A] text-white shadow-xs"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+          ? "bg-slate-900 text-white shadow-xs"
+          : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
       }`}
     >
       {icon}
       <span>{label}</span>
       {badge && (
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
-            active
-              ? "bg-white/20 text-white"
-              : "bg-zinc-200/80 text-zinc-700"
+          className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
+            active ? "bg-white/20 text-white" : "bg-slate-900/10 text-slate-700"
           }`}
         >
           {badge}
