@@ -17,9 +17,9 @@ function createStudioEnvironmentTexture(): THREE.CanvasTexture {
   if (ctx) {
     const baseGrad = ctx.createLinearGradient(0, 0, 0, 256);
     baseGrad.addColorStop(0, "#ffffff");
-    baseGrad.addColorStop(0.35, "#dbeafe");
-    baseGrad.addColorStop(0.7, "#99f6e4");
-    baseGrad.addColorStop(1, "#1e3a5f");
+    baseGrad.addColorStop(0.32, "#bae6fd");
+    baseGrad.addColorStop(0.68, "#2dd4bf");
+    baseGrad.addColorStop(1, "#0f172a");
     ctx.fillStyle = baseGrad;
     ctx.fillRect(0, 0, 512, 256);
 
@@ -30,8 +30,8 @@ function createStudioEnvironmentTexture(): THREE.CanvasTexture {
     ctx.fillRect(0, 0, 512, 256);
 
     const glow2 = ctx.createRadialGradient(380, 140, 10, 380, 140, 130);
-    glow2.addColorStop(0, "rgba(186, 230, 253, 0.9)");
-    glow2.addColorStop(1, "rgba(186, 230, 253, 0)");
+    glow2.addColorStop(0, "rgba(125, 211, 252, 0.95)");
+    glow2.addColorStop(1, "rgba(125, 211, 252, 0)");
     ctx.fillStyle = glow2;
     ctx.fillRect(0, 0, 512, 256);
   }
@@ -63,7 +63,7 @@ function drawRoundedRectPath(
   ctx.closePath();
 }
 
-function paintIdCardFace(
+function paintVerticalIdCardFace(
   canvas: HTMLCanvasElement,
   profile: StudentProfile
 ) {
@@ -75,118 +75,143 @@ function paintIdCardFace(
   ctx.clearRect(0, 0, W, H);
 
   ctx.save();
-  drawRoundedRectPath(ctx, 8, 8, W - 16, H - 16, 48);
+  drawRoundedRectPath(ctx, 10, 10, W - 20, H - 20, 52);
   ctx.clip();
 
-  // Subtle diagonal frosted sheen across glass face
+  // Translucent tinted glass gradient across portrait pass
   const sheen = ctx.createLinearGradient(0, 0, W, H);
-  sheen.addColorStop(0, "rgba(255, 255, 255, 0.42)");
-  sheen.addColorStop(0.45, "rgba(255, 255, 255, 0.10)");
-  sheen.addColorStop(1, "rgba(186, 230, 253, 0.28)");
+  sheen.addColorStop(0, "rgba(255, 255, 255, 0.58)");
+  sheen.addColorStop(0.5, "rgba(224, 242, 254, 0.24)");
+  sheen.addColorStop(1, "rgba(14, 165, 233, 0.28)");
   ctx.fillStyle = sheen;
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle etched inner glass border
-  drawRoundedRectPath(ctx, 12, 12, W - 24, H - 24, 44);
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
-  ctx.lineWidth = 3;
+  // Crisp bright glass edge frame
+  drawRoundedRectPath(ctx, 14, 14, W - 28, H - 28, 48);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+  ctx.lineWidth = 4;
   ctx.stroke();
 
-  // Top Header Strip
-  ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
-  ctx.font = "700 28px system-ui, -apple-system, sans-serif";
-  ctx.fillText("ASKCAMPUS", 58, 78);
-
-  ctx.fillStyle = "rgba(30, 58, 95, 0.58)";
-  ctx.font = "600 16px system-ui, -apple-system, sans-serif";
-  ctx.fillText("UNIVERSITY DIGITAL ID PASS", 58, 108);
-
-  // Top-right Active Status Pill
-  drawRoundedRectPath(ctx, W - 210, 48, 154, 40, 20);
-  ctx.fillStyle = "rgba(16, 185, 129, 0.14)";
+  // Top Lanyard Punch Slot
+  drawRoundedRectPath(ctx, W / 2 - 72, 46, 144, 26, 13);
+  ctx.fillStyle = "rgba(15, 23, 42, 0.16)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(16, 185, 129, 0.35)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(W - 184, 68, 6, 0, Math.PI * 2);
-  ctx.fillStyle = "#059669";
-  ctx.fill();
-
-  ctx.fillStyle = "#065f46";
-  ctx.font = "600 16px monospace";
-  ctx.fillText("VERIFIED", W - 166, 74);
-
-  // Minimal Frosted Avatar Silhouette Box
-  drawRoundedRectPath(ctx, 58, 164, 152, 186, 26);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Silhouette icon inside avatar box
-  ctx.fillStyle = "rgba(30, 58, 95, 0.36)";
-  ctx.beginPath();
-  ctx.arc(134, 224, 30, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(134, 306, 48, 34, 0, Math.PI, Math.PI * 2);
-  ctx.fill();
+  // Header Brand & Verified Pill
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+  ctx.font = "700 38px system-ui, -apple-system, sans-serif";
+  ctx.fillText("ASKCAMPUS", W / 2, 148);
 
-  // Smart Chip icon
-  drawRoundedRectPath(ctx, 252, 174, 74, 54, 12);
-  ctx.fillStyle = "rgba(203, 213, 225, 0.55)";
+  ctx.fillStyle = "rgba(30, 58, 95, 0.78)";
+  ctx.font = "600 18px system-ui, -apple-system, sans-serif";
+  ctx.fillText("STUDENT DIGITAL ACCESS PASS", W / 2, 182);
+
+  // Verified Status Pill
+  drawRoundedRectPath(ctx, W / 2 - 92, 208, 184, 42, 21);
+  ctx.fillStyle = "rgba(16, 185, 129, 0.20)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(100, 116, 139, 0.45)";
+  ctx.strokeStyle = "rgba(16, 185, 129, 0.55)";
   ctx.lineWidth = 2;
   ctx.stroke();
+
   ctx.beginPath();
-  ctx.moveTo(252, 201);
-  ctx.lineTo(326, 201);
-  ctx.moveTo(289, 174);
-  ctx.lineTo(289, 228);
+  ctx.arc(W / 2 - 58, 229, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#059669";
+  ctx.fill();
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#065f46";
+  ctx.font = "700 18px monospace";
+  ctx.fillText("VERIFIED", W / 2 - 42, 235);
+
+  // Portrait Avatar Frame
+  const avSize = 236;
+  const avX = W / 2 - avSize / 2;
+  const avY = 290;
+  drawRoundedRectPath(ctx, avX, avY, avSize, avSize, 42);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.56)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
+  ctx.lineWidth = 3.5;
   ctx.stroke();
 
-  // Student Profile Details (Live reactive to Branch / Sem / Residence)
-  ctx.fillStyle = "rgba(15, 23, 42, 0.82)";
-  ctx.font = "700 32px system-ui, -apple-system, sans-serif";
-  const branchText =
-    profile.branch === "All" ? "B.TECH ALL BRANCHES" : `B.TECH · ${profile.branch}`;
-  ctx.fillText(branchText, 252, 280);
+  // Clean Silhouette
+  ctx.fillStyle = "rgba(15, 23, 42, 0.35)";
+  ctx.beginPath();
+  ctx.arc(W / 2, avY + 88, 44, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(W / 2, avY + 196, 76, 52, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
 
-  ctx.fillStyle = "rgba(51, 65, 85, 0.72)";
-  ctx.font = "500 22px system-ui, -apple-system, sans-serif";
+  // Student Details (Live reactive)
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+  ctx.font = "700 40px system-ui, -apple-system, sans-serif";
+  const branchText =
+    profile.branch === "All" ? "B.TECH · ALL" : `B.TECH · ${profile.branch}`;
+  ctx.fillText(branchText, W / 2, 608);
+
+  ctx.fillStyle = "rgba(30, 58, 95, 0.85)";
+  ctx.font = "600 26px system-ui, -apple-system, sans-serif";
   ctx.fillText(
     `Semester ${profile.semester}  •  ${profile.residence}`,
-    252,
-    318
+    W / 2,
+    654
   );
 
-  // Clean Hairline Divider
+  // Smart Chip + ID Number Row
+  drawRoundedRectPath(ctx, 76, 718, 96, 68, 14);
+  ctx.fillStyle = "rgba(226, 232, 240, 0.78)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(71, 85, 105, 0.55)";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(58, 412);
-  ctx.lineTo(W - 58, 412);
-  ctx.strokeStyle = "rgba(148, 163, 184, 0.32)";
+  ctx.moveTo(76, 752);
+  ctx.lineTo(172, 752);
+  ctx.moveTo(124, 718);
+  ctx.lineTo(124, 786);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+  ctx.font = "600 21px monospace";
+  ctx.fillText("ID: AC-2026-0304", 204, 746);
+  ctx.fillStyle = "rgba(51, 65, 85, 0.72)";
+  ctx.font = "500 18px monospace";
+  ctx.fillText("VALID: AY 2026–27", 204, 780);
+
+  // Hairline Divider
+  ctx.beginPath();
+  ctx.moveTo(76, 840);
+  ctx.lineTo(W - 76, 840);
+  ctx.strokeStyle = "rgba(15, 23, 42, 0.16)";
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Bottom Metadata + Minimal Barcode Stripes
-  ctx.fillStyle = "rgba(71, 85, 105, 0.65)";
-  ctx.font = "500 16px monospace";
-  ctx.fillText("ID NO: AC-2026-0304", 58, 468);
-  ctx.fillText("ACADEMIC YEAR 2026–27", 58, 498);
-
-  // Subtle laser-etched barcode
-  const barStart = W - 268;
-  const barWidths = [4, 2, 6, 3, 2, 5, 2, 4, 6, 2, 3, 5, 2, 4, 2, 6, 3, 4];
-  let cursor = barStart;
-  ctx.fillStyle = "rgba(15, 23, 42, 0.42)";
+  // Sharp Laser-Etched Bottom Barcode
+  const barWidths = [
+    6, 3, 9, 4, 3, 7, 3, 6, 9, 3, 4, 8, 3, 6, 4, 9, 4, 6, 3, 8, 4, 5, 8, 3,
+    6, 4, 7, 3, 6,
+  ];
+  const totalBarW =
+    barWidths.reduce((sum, w) => sum + w, 0) + (barWidths.length - 1) * 7;
+  let cursor = (W - totalBarW) / 2;
+  ctx.fillStyle = "rgba(15, 23, 42, 0.58)";
   for (const w of barWidths) {
-    ctx.fillRect(cursor, 446, w, 58);
-    cursor += w + 5;
+    ctx.fillRect(cursor, 886, w, 92);
+    cursor += w + 7;
   }
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(51, 65, 85, 0.7)";
+  ctx.font = "500 16px monospace";
+  ctx.fillText("CAMPUS SMART CREDENTIAL", W / 2, 1022);
 
   ctx.restore();
 }
@@ -219,7 +244,7 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
 
   useEffect(() => {
     if (faceCanvasRef.current && faceTexRef.current) {
-      paintIdCardFace(faceCanvasRef.current, profile);
+      paintVerticalIdCardFace(faceCanvasRef.current, profile);
       faceTexRef.current.needsUpdate = true;
     }
   }, [profile]);
@@ -247,11 +272,10 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.1;
 
     const scene = new THREE.Scene();
 
-    // Procedural studio sky reflections for crisp glass edge bevels
     const pmrem = new THREE.PMREMGenerator(renderer);
     const equirectTex = createStudioEnvironmentTexture();
     const envTarget = pmrem.fromEquirectangular(equirectTex);
@@ -265,71 +289,85 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
       0.1,
       50
     );
-    camera.position.set(0, 0, 9.2);
+    camera.position.set(0, 0, 9.4);
     camera.lookAt(0, 0, 0);
 
-    // Serene studio lighting
-    const ambient = new THREE.AmbientLight(0xf1f5f9, 1.4);
+    const ambient = new THREE.AmbientLight(0xf1f5f9, 1.3);
     scene.add(ambient);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.3);
     keyLight.position.set(5, 6, 7);
     scene.add(keyLight);
 
-    const coolRim = new THREE.DirectionalLight(0x7dd3fc, 1.6);
+    const coolRim = new THREE.DirectionalLight(0x38bdf8, 1.8);
     coolRim.position.set(-6, -2, 5);
     scene.add(coolRim);
 
-    const mintFill = new THREE.PointLight(0x99f6e4, 1.8, 22);
+    const mintFill = new THREE.PointLight(0x2dd4bf, 2.0, 22);
     mintFill.position.set(2, -3, 5);
     scene.add(mintFill);
 
-    // Card Dimensions
-    const cardW = 4.35;
-    const cardH = 2.72;
+    // Vertical Portrait ID Card Dimensions
+    const cardW = 2.72;
+    const cardH = 4.28;
     const cardRadius = 0.22;
     const cardShape = createRoundedCardShape(cardW, cardH, cardRadius);
 
     const cardGroup = new THREE.Group();
-    const getBasePos = (w: number) =>
-      w >= 1024 ? { x: 2.35, y: 0.1 } : { x: 0.25, y: 0.9 };
+    const getBasePos = (w: number) => {
+      if (w >= 1400) return { x: 4.15, y: 0.05 };
+      if (w >= 1024) return { x: 3.35, y: 0.05 };
+      return { x: 0.85, y: 0.45 };
+    };
     const initPos = getBasePos(window.innerWidth);
-    cardGroup.position.set(initPos.x, initPos.y, 0);
-    cardGroup.rotation.set(0.08, -0.26, -0.04);
+    cardGroup.position.set(initPos.x, initPos.y, 0.2);
+    cardGroup.rotation.set(0.06, -0.28, -0.05);
     scene.add(cardGroup);
 
-    // Main Transparent Glass Slab (Beveled Rounded Rectangle)
+    // Translucent Ocean-Tinted Glass Slab (higher clarity & specular pop)
     const slabGeo = new THREE.ExtrudeGeometry(cardShape, {
-      depth: 0.06,
+      depth: 0.08,
       bevelEnabled: true,
       bevelSegments: 5,
       steps: 1,
-      bevelSize: 0.025,
-      bevelThickness: 0.025,
+      bevelSize: 0.03,
+      bevelThickness: 0.03,
     });
     slabGeo.center();
 
     const slabMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#e0f2fe"),
-      roughness: 0.14,
-      metalness: 0.04,
+      color: new THREE.Color("#7dd3fc"),
+      roughness: 0.09,
+      metalness: 0.06,
       clearcoat: 1,
-      clearcoatRoughness: 0.08,
-      iridescence: 0.65,
-      iridescenceIOR: 1.32,
-      envMapIntensity: 1.65,
+      clearcoatRoughness: 0.06,
+      iridescence: 0.9,
+      iridescenceIOR: 1.35,
+      envMapIntensity: 1.9,
       transparent: true,
-      opacity: 0.44,
+      opacity: 0.56,
       side: THREE.DoubleSide,
     });
     const slabMesh = new THREE.Mesh(slabGeo, slabMat);
     cardGroup.add(slabMesh);
 
-    // Crisp Laser-Etched Front Glass Face
+    // Crisp Metallic Lanyard Clasp Ring at Top of Vertical Card
+    const claspGeo = new THREE.TorusGeometry(0.18, 0.03, 16, 48);
+    const claspMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color("#94a3b8"),
+      roughness: 0.2,
+      metalness: 0.85,
+      envMapIntensity: 1.8,
+    });
+    const claspMesh = new THREE.Mesh(claspGeo, claspMat);
+    claspMesh.position.set(0, cardH / 2 + 0.14, 0);
+    cardGroup.add(claspMesh);
+
+    // High-DPI Vertical Laser-Etched ID Card Face
     const faceCanvas = document.createElement("canvas");
-    faceCanvas.width = 1024;
-    faceCanvas.height = 640;
-    paintIdCardFace(faceCanvas, profile);
+    faceCanvas.width = 768;
+    faceCanvas.height = 1200;
+    paintVerticalIdCardFace(faceCanvas, profile);
     faceCanvasRef.current = faceCanvas;
 
     const faceTex = new THREE.CanvasTexture(faceCanvas);
@@ -344,10 +382,10 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
       depthWrite: false,
     });
     const faceMesh = new THREE.Mesh(faceGeo, faceMat);
-    faceMesh.position.z = 0.062;
+    faceMesh.position.z = 0.078;
     cardGroup.add(faceMesh);
 
-    // Subtle Echo Translucent Backing Rectangle for calm 3D depth
+    // Deep Slate-Teal Translucent Backing Card for High-Contrast Glass Refraction
     const backCardGeo = new THREE.ExtrudeGeometry(cardShape, {
       depth: 0.04,
       bevelEnabled: true,
@@ -359,16 +397,16 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
     backCardGeo.center();
 
     const backCardMat = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#99f6e4"),
+      color: new THREE.Color("#0f766e"),
       roughness: 0.22,
       clearcoat: 0.8,
-      envMapIntensity: 1.3,
+      envMapIntensity: 1.4,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.34,
     });
     const backCardMesh = new THREE.Mesh(backCardGeo, backCardMat);
-    backCardMesh.position.set(-0.65, -0.38, -0.95);
-    backCardMesh.rotation.set(0.05, 0.14, 0.08);
+    backCardMesh.position.set(-0.55, -0.35, -0.85);
+    backCardMesh.rotation.set(0.04, 0.14, 0.08);
     cardGroup.add(backCardMesh);
 
     const onResize = () => {
@@ -394,12 +432,11 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
         const dt = Math.min(Math.max(timer.getDelta(), 0), 0.1);
         elapsed += dt;
 
-        // Calm steady floating & gentle breathing tilt (zero pointer-hover sway)
         const base = getBasePos(window.innerWidth);
         cardGroup.position.x = base.x;
-        cardGroup.position.y = base.y + Math.sin(elapsed * 0.55) * 0.13;
-        cardGroup.rotation.y = -0.26 + Math.sin(elapsed * 0.35) * 0.12;
-        cardGroup.rotation.x = 0.08 + Math.cos(elapsed * 0.4) * 0.05;
+        cardGroup.position.y = base.y + Math.sin(elapsed * 0.55) * 0.14;
+        cardGroup.rotation.y = -0.28 + Math.sin(elapsed * 0.35) * 0.14;
+        cardGroup.rotation.x = 0.06 + Math.cos(elapsed * 0.4) * 0.05;
 
         renderer?.render(scene, camera);
       });
@@ -412,6 +449,8 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
       envTarget.dispose();
       slabGeo.dispose();
       slabMat.dispose();
+      claspGeo.dispose();
+      claspMat.dispose();
       faceGeo.dispose();
       faceMat.dispose();
       faceTex.dispose();
@@ -419,7 +458,6 @@ export function CalmOrbScene({ profile }: CalmOrbSceneProps) {
       backCardMat.dispose();
       renderer?.dispose();
     };
-    // Intentionally mounted once; profile updates repaint faceCanvas in separate effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -25,11 +25,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Frosted glassmorphism surfaces tuned for rich 3D refraction behind */
+/* Frosted glassmorphism surfaces tuned so 3D vertical ID card refracts visibly behind */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(22px) saturate(165%);
-  -webkit-backdrop-filter: blur(22px) saturate(165%);
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(16px) saturate(155%);
+  -webkit-backdrop-filter: blur(16px) saturate(155%);
   border: 1px solid rgba(255, 255, 255, 0.82);
   box-shadow:
     0 12px 40px rgba(15, 23, 42, 0.06),
@@ -37,9 +37,9 @@ body {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.52);
-  backdrop-filter: blur(18px) saturate(155%);
-  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  background: rgba(255, 255, 255, 0.46);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow:
     0 6px 26px rgba(15, 23, 42, 0.045),
