@@ -84,6 +84,7 @@ export function CalmOrbScene() {
       60
     );
     camera.position.set(0, 0.2, 9.2);
+    camera.lookAt(0, 0, -0.5);
 
     // Balanced light rig
     const ambient = new THREE.AmbientLight(0xe0f2fe, 1.2);
@@ -204,15 +205,6 @@ export function CalmOrbScene() {
     waveMesh.position.set(0, -2.85, -3.5);
     scene.add(waveMesh);
 
-    // Smooth mouse parallax state
-    let pointerX = 0;
-    let pointerY = 0;
-    const onPointerMove = (e: PointerEvent) => {
-      pointerX = (e.clientX / window.innerWidth) * 2 - 1;
-      pointerY = -(e.clientY / window.innerHeight) * 2 + 1;
-    };
-    window.addEventListener("pointermove", onPointerMove, { passive: true });
-
     const onResize = () => {
       if (!renderer) return;
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -238,15 +230,19 @@ export function CalmOrbScene() {
         const dt = Math.min(Math.max(timer.getDelta(), 0), 0.1);
         elapsed += dt;
 
-        // Smooth rotation of centerpiece sculpture
+        // Peaceful steady rotation of centerpiece sculpture
         knotMesh.rotation.y += dt * 0.14;
         knotMesh.rotation.x += dt * 0.07;
         haloMesh.rotation.z += dt * 0.1;
 
+        const base = getBasePos(window.innerWidth);
+        sculptureGroup.position.x = base.x;
+        sculptureGroup.position.y = base.y + Math.sin(elapsed * 0.55) * 0.12;
+
         // Gentle floating spheres
-        satMesh1.position.y = 1.5 + Math.sin(elapsed * 0.55) * 0.25;
-        satMesh2.position.y = -1.6 + Math.cos(elapsed * 0.65) * 0.22;
-        satMesh3.position.y = -2.1 + Math.sin(elapsed * 0.8 + 1.2) * 0.18;
+        satMesh1.position.y = 1.5 + Math.sin(elapsed * 0.55) * 0.22;
+        satMesh2.position.y = -1.6 + Math.cos(elapsed * 0.65) * 0.2;
+        satMesh3.position.y = -2.1 + Math.sin(elapsed * 0.8 + 1.2) * 0.16;
 
         // Undulating calm wave mesh
         for (let i = 0; i < posAttr.count; i++) {
@@ -254,34 +250,17 @@ export function CalmOrbScene() {
           const vy = posAttr.getY(i);
           const z =
             waveBaseZ[i] +
-            Math.sin(vx * 0.45 + elapsed * 0.7) * 0.28 +
-            Math.cos(vy * 0.55 + elapsed * 0.5) * 0.22;
+            Math.sin(vx * 0.45 + elapsed * 0.65) * 0.26 +
+            Math.cos(vy * 0.55 + elapsed * 0.45) * 0.2;
           posAttr.setZ(i, z);
         }
         posAttr.needsUpdate = true;
-
-        // Subtle pointer parallax
-        const base = getBasePos(window.innerWidth);
-        const targetX = base.x + pointerX * 0.36;
-        const targetY = base.y + Math.sin(elapsed * 0.6) * 0.14 + pointerY * 0.24;
-
-        sculptureGroup.position.x +=
-          (targetX - sculptureGroup.position.x) * Math.min(1, dt * 2.8);
-        sculptureGroup.position.y +=
-          (targetY - sculptureGroup.position.y) * Math.min(1, dt * 2.8);
-
-        camera.position.x +=
-          (pointerX * 0.25 - camera.position.x) * Math.min(1, dt * 2);
-        camera.position.y +=
-          (0.2 + pointerY * 0.15 - camera.position.y) * Math.min(1, dt * 2);
-        camera.lookAt(0, 0, -0.5);
 
         renderer?.render(scene, camera);
       });
     }
 
     return () => {
-      window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", onResize);
       renderer?.setAnimationLoop(null);
       timer.dispose();
