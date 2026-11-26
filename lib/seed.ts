@@ -190,7 +190,7 @@ export function createSeedData(): CampusDbState {
         due_time: "11:59 PM",
         penalty_impact: "₹500/day late fine after 29 Nov",
         urgency: "critical",
-        action_url: "https://erp.askcampus.edu.in/exam-form",
+        action_url: "https://erp.unibrief.edu.in/exam-form",
         target_branches: ["All"],
         target_semesters: [1, 2, 3, 4, 5, 6, 7, 8],
         audience_type: "all",

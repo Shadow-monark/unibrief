@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AskCampus — Calm Campus Knowledge & Deadline OS",
+  title: "UniBrief — Calm Campus Knowledge & Deadline OS",
   description:
     "Calm AI university circular intelligence, anti-fine deadline radar, rumor checker, and attendance simulator.",
 };

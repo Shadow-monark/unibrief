@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     if (!question) {
       return NextResponse.json(
-        { error: "Please enter a question to ask AskCampus." },
+        { error: "Please enter a question to ask UniBrief." },
         { status: 400 }
       );
     }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const message =
-      err instanceof Error ? err.message : "Failed to process AskCampus query.";
+      err instanceof Error ? err.message : "Failed to process UniBrief query.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

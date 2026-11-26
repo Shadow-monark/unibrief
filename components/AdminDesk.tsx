@@ -26,7 +26,7 @@ interface AdminDeskProps {
   onToast: (message: string, tone?: "success" | "error" | "info") => void;
 }
 
-const WEBHOOK_STORAGE_KEY = "askcampus_webhook_url";
+const WEBHOOK_STORAGE_KEY = "unibrief_webhook_url";
 const webhookListeners = new Set<() => void>();
 
 function subscribeWebhookStore(callback: () => void): () => void {

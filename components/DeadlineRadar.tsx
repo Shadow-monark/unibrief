@@ -212,7 +212,7 @@ export function DeadlineRadar({
                       aria-label={`Download calendar reminder for ${deadline.title}`}
                       onClick={() =>
                         downloadIcsFile({
-                          uid: `${deadline.id}@askcampus.edu`,
+                          uid: `${deadline.id}@unibrief.edu`,
                           title: deadline.title,
                           date: deadline.due_date,
                           time: deadline.due_time,

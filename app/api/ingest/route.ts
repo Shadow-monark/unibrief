@@ -38,7 +38,7 @@ async function dispatchWebhookNonBlocking(
     }
 
     const summaryText = [
-      `[AskCampus Alert] ${notice.circular_no}: ${notice.title}`,
+      `[UniBrief Alert] ${notice.circular_no}: ${notice.title}`,
       `Effective: ${notice.effective_date} | Topic: ${notice.topic_tag}`,
       notice.summary,
       supersededCircularNos.length > 0
@@ -58,7 +58,7 @@ async function dispatchWebhookNonBlocking(
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(5000),
       body: JSON.stringify({
-        event: "askcampus_notice_ingested",
+        event: "unibrief_notice_ingested",
         text: summaryText, // Slack / n8n compatible
         content: summaryText, // Discord compatible
         circular_no: notice.circular_no,

@@ -198,7 +198,7 @@ async function callGroqJson<T>(
       {
         role: "system",
         content:
-          "You are AskCampus AI. Return strictly valid JSON matching the exact requested schema with zero hallucination. Output raw JSON only.",
+          "You are UniBrief AI. Return strictly valid JSON matching the exact requested schema with zero hallucination. Output raw JSON only.",
       },
       {
         role: "user",
@@ -553,7 +553,7 @@ export async function answerCampusQuestion(params: {
   attachment?: ParsedDocumentInput | null;
 }): Promise<AskResponse> {
   const { question, profile, notices, attachment } = params;
-  const prompt = `You are AskCampus, an authoritative, zero-hallucination university academic assistant.
+  const prompt = `You are UniBrief, an authoritative, zero-hallucination university academic assistant.
 Student Profile Context:
 - Branch: ${profile.branch}
 - Semester: ${profile.semester}
@@ -699,7 +699,7 @@ export async function verifyCampusRumor(params: {
   notices: Notice[];
 }): Promise<VerifyRumorResponse> {
   const { claim, notices } = params;
-  const prompt = `You are the AskCampus Rumor Buster fact-checking engine.
+  const prompt = `You are the UniBrief Rumor Buster fact-checking engine.
 Evaluate the student's forwarded WhatsApp message/claim strictly against the Official Campus Circulars below.
 
 Official Campus Circulars (including ACTIVE and SUPERSEDED):

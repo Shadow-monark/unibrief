@@ -142,7 +142,7 @@ export function AskCampusQA({
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            AskCampus AI
+            UniBrief AI
           </h1>
           <p className="mt-1 text-sm text-slate-600">
             Calm, citation-backed answers for {profile.branch} Sem{" "}
@@ -419,7 +419,7 @@ export function AskCampusQA({
                 }
               }}
               placeholder="Ask about exams, fines, medical leave, or attach a file..."
-              aria-label="Question for AskCampus"
+              aria-label="Question for UniBrief"
               className="h-9 flex-1 bg-transparent px-1 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
             />
 

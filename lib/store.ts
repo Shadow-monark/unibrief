@@ -7,9 +7,9 @@ const DB_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DB_DIR, "campus-db.json");
 
 declare global {
-  var __askcampusDbState: CampusDbState | undefined;
-  var __askcampusReadOnlyMode: boolean | undefined;
-  var __askcampusWriteQueue: Promise<unknown> | undefined;
+  var __unibriefDbState: CampusDbState | undefined;
+  var __unibriefReadOnlyMode: boolean | undefined;
+  var __unibriefWriteQueue: Promise<unknown> | undefined;
 }
 
 function cloneState(state: CampusDbState): CampusDbState {
@@ -17,7 +17,7 @@ function cloneState(state: CampusDbState): CampusDbState {
 }
 
 async function persistToDisk(state: CampusDbState): Promise<void> {
-  if (globalThis.__askcampusReadOnlyMode) return;
+  if (globalThis.__unibriefReadOnlyMode) return;
   try {
     await fs.mkdir(DB_DIR, { recursive: true });
     await fs.writeFile(DB_PATH, JSON.stringify(state, null, 2), "utf8");
@@ -32,16 +32,16 @@ async function persistToDisk(state: CampusDbState): Promise<void> {
       code === "EPERM" ||
       code === "ENOENT"
     ) {
-      globalThis.__askcampusReadOnlyMode = true;
+      globalThis.__unibriefReadOnlyMode = true;
       return;
     }
-    globalThis.__askcampusReadOnlyMode = true;
+    globalThis.__unibriefReadOnlyMode = true;
   }
 }
 
 async function loadStateInternal(): Promise<CampusDbState> {
-  if (globalThis.__askcampusDbState) {
-    return globalThis.__askcampusDbState;
+  if (globalThis.__unibriefDbState) {
+    return globalThis.__unibriefDbState;
   }
 
   try {
@@ -52,27 +52,27 @@ async function loadStateInternal(): Promise<CampusDbState> {
       Array.isArray(parsed.deadlines) &&
       Array.isArray(parsed.alert_logs)
     ) {
-      globalThis.__askcampusDbState = {
+      globalThis.__unibriefDbState = {
         notices: parsed.notices,
         deadlines: parsed.deadlines,
         alert_logs: parsed.alert_logs,
       };
-      return globalThis.__askcampusDbState;
+      return globalThis.__unibriefDbState;
     }
   } catch {
     // Seed fresh state on first run or unreadable disk
   }
 
   const seeded = createSeedData();
-  globalThis.__askcampusDbState = seeded;
+  globalThis.__unibriefDbState = seeded;
   await persistToDisk(seeded);
-  return globalThis.__askcampusDbState;
+  return globalThis.__unibriefDbState;
 }
 
 function enqueueMutation<T>(task: () => Promise<T>): Promise<T> {
-  const prev = globalThis.__askcampusWriteQueue ?? Promise.resolve();
+  const prev = globalThis.__unibriefWriteQueue ?? Promise.resolve();
   const next = prev.then(task, task);
-  globalThis.__askcampusWriteQueue = next.then(
+  globalThis.__unibriefWriteQueue = next.then(
     () => undefined,
     () => undefined
   );
@@ -91,7 +91,7 @@ export async function mutateDbState<T>(
     const current = await loadStateInternal();
     const draft = cloneState(current);
     const result = await mutator(draft);
-    globalThis.__askcampusDbState = draft;
+    globalThis.__unibriefDbState = draft;
     await persistToDisk(draft);
     return result;
   });
@@ -123,5 +123,5 @@ export async function getNoticeById(noticeId: string): Promise<Notice | null> {
 }
 
 export function isUsingInMemoryFallback(): boolean {
-  return Boolean(globalThis.__askcampusReadOnlyMode);
+  return Boolean(globalThis.__unibriefReadOnlyMode);
 }

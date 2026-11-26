@@ -76,7 +76,7 @@ export function TopNav({
             <Sparkles className="h-4 w-4" aria-hidden="true" />
           </div>
           <span className="text-base font-bold tracking-tight text-slate-900">
-            AskCampus
+            UniBrief
           </span>
           <span
             title={`${verifiedNoticeCount} verified official circulars`}

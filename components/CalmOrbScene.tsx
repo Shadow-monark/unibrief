@@ -104,7 +104,7 @@ function paintVerticalIdCardFace(
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
   ctx.font = "700 38px system-ui, -apple-system, sans-serif";
-  ctx.fillText("ASKCAMPUS", W / 2, 148);
+  ctx.fillText("UNIBRIEF", W / 2, 148);
 
   ctx.fillStyle = "rgba(30, 58, 95, 0.78)";
   ctx.font = "600 18px system-ui, -apple-system, sans-serif";
@@ -181,7 +181,7 @@ function paintVerticalIdCardFace(
   ctx.textAlign = "left";
   ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
   ctx.font = "600 21px monospace";
-  ctx.fillText("ID: AC-2026-0304", 204, 746);
+  ctx.fillText("ID: UB-2026-0304", 204, 746);
   ctx.fillStyle = "rgba(51, 65, 85, 0.72)";
   ctx.font = "500 18px monospace";
   ctx.fillText("VALID: AY 2026–27", 204, 780);
